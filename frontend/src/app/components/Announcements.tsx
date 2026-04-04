@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -13,6 +13,10 @@ import {
   CheckCircle,
   Megaphone
 } from "lucide-react";
+import { formatDistanceToNowStrict } from "date-fns";
+import { listAnnouncements } from "../api/services/announcements.service";
+import { createAnnouncement } from "../api/services/announcements.service";
+import { useAuth } from "../auth/AuthContext";
 import {
   Select,
   SelectContent,
@@ -20,101 +24,56 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Link } from "react-router";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
 
 export default function Announcements() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [newCategory, setNewCategory] = useState("Academic");
+  const [newPriority, setNewPriority] = useState<"info" | "warning" | "success" | "urgent">("info");
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  const announcements = [
-    {
-      id: 1,
-      title: "Spring 2026 Registration Now Open",
-      content: "Registration for Spring 2026 semester is now open. Students can access the registration portal through the student information system. Priority registration dates are based on credit hours completed.",
-      category: "Academic",
-      type: "urgent",
-      date: "March 7, 2026",
-      time: "2 hours ago",
-      author: "Registrar's Office",
-      tags: ["registration", "spring-2026", "academic"],
-    },
-    {
-      id: 2,
-      title: "Campus WiFi Maintenance Scheduled",
-      content: "The IT department will perform routine maintenance on the campus-wide WiFi network on March 10, 2026, from 2:00 AM to 6:00 AM. During this time, wireless internet access may be intermittent.",
-      category: "IT Services",
-      type: "info",
-      date: "March 7, 2026",
-      time: "5 hours ago",
-      author: "IT Services",
-      tags: ["wifi", "maintenance", "it"],
-    },
-    {
-      id: 3,
-      title: "Guest Lecture: The Future of AI in Healthcare",
-      content: "Join us for an exciting guest lecture by Dr. Maria Santos on 'The Future of AI in Healthcare' on March 15, 2026, at 4:00 PM in the Main Auditorium. Open to all students and faculty.",
-      category: "Events",
-      type: "success",
-      date: "March 6, 2026",
-      time: "1 day ago",
-      author: "Department of Computer Science",
-      tags: ["lecture", "ai", "healthcare", "event"],
-    },
-    {
-      id: 4,
-      title: "Library Extended Hours During Finals Week",
-      content: "The University Library will offer extended hours during finals week (March 20-27). The library will be open 24/7 to support students during the examination period. Additional study rooms will be available.",
-      category: "Library",
-      type: "info",
-      date: "March 6, 2026",
-      time: "1 day ago",
-      author: "University Library",
-      tags: ["library", "finals", "study"],
-    },
-    {
-      id: 5,
-      title: "New Mental Health Resources Available",
-      content: "The Student Wellness Center has launched new mental health support services, including free counseling sessions, meditation workshops, and peer support groups. Schedule appointments online.",
-      category: "Student Services",
-      type: "success",
-      date: "March 5, 2026",
-      time: "2 days ago",
-      author: "Student Wellness Center",
-      tags: ["mental-health", "wellness", "counseling"],
-    },
-    {
-      id: 6,
-      title: "Campus Security Alert: Parking Lot Construction",
-      content: "Parking Lot C will be closed for construction starting March 12, 2026. Alternative parking is available in Lots A, B, and D. Temporary parking passes can be obtained from Campus Security.",
-      category: "Facilities",
-      type: "warning",
-      date: "March 5, 2026",
-      time: "2 days ago",
-      author: "Campus Security",
-      tags: ["parking", "construction", "facilities"],
-    },
-    {
-      id: 7,
-      title: "Career Fair 2026 - Register Now",
-      content: "The Annual Career Fair will take place on March 25, 2026. Over 100 employers will be attending. Students are encouraged to register in advance, update their resumes, and prepare for networking opportunities.",
-      category: "Career Services",
-      type: "urgent",
-      date: "March 4, 2026",
-      time: "3 days ago",
-      author: "Career Services Center",
-      tags: ["career-fair", "jobs", "internships"],
-    },
-    {
-      id: 8,
-      title: "Spring Break Schedule Reminder",
-      content: "Spring break is scheduled for March 14-18, 2026. Classes will not be held during this period. The university will operate on a limited schedule. Residence halls will remain open.",
-      category: "Academic",
-      type: "info",
-      date: "March 3, 2026",
-      time: "4 days ago",
-      author: "Academic Affairs",
-      tags: ["spring-break", "schedule"],
-    },
-  ];
+  const [announcements, setAnnouncements] = useState<Array<{
+    id: string;
+    title: string;
+    content: string;
+    category: string;
+    type: string;
+    date: string;
+    time: string;
+    author: string;
+    tags: string[];
+  }>>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    listAnnouncements().then((items) => {
+      if (!mounted) return;
+      setAnnouncements(
+        items.map((announcement) => ({
+          id: announcement.id,
+          title: announcement.title,
+          content: announcement.body,
+          category: announcement.category,
+          type: announcement.priority,
+          date: new Date(announcement.createdAt).toLocaleDateString(),
+          time: formatDistanceToNowStrict(new Date(announcement.createdAt), { addSuffix: true }),
+          author: announcement.postedBy.displayName,
+          tags: announcement.tags,
+        })),
+      );
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -144,12 +103,40 @@ export default function Announcements() {
 
   const categories = ["all", "Academic", "IT Services", "Events", "Library", "Student Services", "Facilities", "Career Services"];
 
-  const filteredAnnouncements = announcements.filter(announcement => {
+  const filteredAnnouncements = useMemo(() => announcements.filter(announcement => {
     const matchesSearch = announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          announcement.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === "all" || announcement.category === filterCategory;
     return matchesSearch && matchesCategory;
-  });
+  }), [announcements, searchQuery, filterCategory]);
+
+  const handleCreateAnnouncement = async () => {
+    try {
+      setCreateError(null);
+      const announcement = await createAnnouncement(newTitle, newBody, newCategory);
+      setAnnouncements((current) => [
+        {
+          id: announcement.id,
+          title: announcement.title,
+          content: announcement.body,
+          category: announcement.category,
+          type: newPriority,
+          date: new Date(announcement.createdAt).toLocaleDateString(),
+          time: formatDistanceToNowStrict(new Date(announcement.createdAt), { addSuffix: true }),
+          author: announcement.postedBy.displayName,
+          tags: announcement.tags,
+        },
+        ...current,
+      ]);
+      setCreateOpen(false);
+      setNewTitle("");
+      setNewBody("");
+      setNewCategory("Academic");
+      setNewPriority("info");
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Unable to create announcement");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -236,7 +223,53 @@ export default function Announcements() {
             ))}
           </SelectContent>
         </Select>
+        {user?.role === "staff" && (
+          <Button onClick={() => setCreateOpen(true)}>
+            <Bell className="w-4 h-4 mr-2" />
+            New Announcement
+          </Button>
+        )}
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Announcement</DialogTitle>
+            <DialogDescription>Create an official announcement for the university portal.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ann-title">Title</Label>
+              <Input id="ann-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Announcement title" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ann-category">Category</Label>
+              <Input id="ann-category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Academic" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ann-priority">Priority</Label>
+              <Select value={newPriority} onValueChange={(value) => setNewPriority(value as typeof newPriority)}>
+                <SelectTrigger id="ann-priority"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="info">Info</SelectItem>
+                  <SelectItem value="warning">Warning</SelectItem>
+                  <SelectItem value="success">New</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="ann-body">Body</Label>
+              <Textarea id="ann-body" value={newBody} onChange={(e) => setNewBody(e.target.value)} placeholder="Write announcement details..." rows={5} />
+            </div>
+            {createError && <p className="text-sm text-red-600">{createError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateAnnouncement}>Create</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Announcements List */}
       <div className="space-y-4">
@@ -281,8 +314,8 @@ export default function Announcements() {
                       </div>
                       <span className="text-xs">{announcement.time}</span>
                       <span className="text-xs">by {announcement.author}</span>
-                      <Button variant="link" size="sm" className="ml-auto text-blue-600 p-0 h-auto">
-                        Read More →
+                      <Button asChild variant="link" size="sm" className="ml-auto text-blue-600 p-0 h-auto">
+                        <Link to={`/announcements/${announcement.id}`}>Read More →</Link>
                       </Button>
                     </div>
                   </div>

@@ -1,13 +1,29 @@
 import { Outlet, Link, useLocation } from "react-router";
-import { Search, BookOpen, MessagesSquare, Bell, HelpCircle, Menu, X } from "lucide-react";
+import { Search, BookOpen, MessagesSquare, Bell, HelpCircle, Menu, X, LogIn, LogOut, UserPlus, Shield, User } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { Badge } from "./ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Label } from "./ui/label";
+import { useAuth } from "../auth/AuthContext";
 
 export default function Root() {
   const location = useLocation();
+  const { user, isGuest, isLoading, loginUser, logoutUser, continueAsGuest, registerStaffUser } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [authError, setAuthError] = useState<string | null>(null);
+
+  const roleLabel = useMemo(() => {
+    if (!user) return isGuest ? "Guest" : "Anonymous";
+    return user.role === "staff" ? "Staff" : "Student";
+  }, [user, isGuest]);
 
   const isActive = (path: string) => {
     if (path === "/" && location.pathname === "/") return true;
@@ -21,6 +37,28 @@ export default function Root() {
     { path: "/announcements", label: "Announcements", icon: Bell },
     { path: "/questions", label: "Q&A Archive", icon: HelpCircle },
   ];
+
+  const resetAuthForm = () => {
+    setEmail("");
+    setPassword("");
+    setDisplayName("");
+    setAuthError(null);
+  };
+
+  const handleAuthSubmit = async () => {
+    try {
+      setAuthError(null);
+      if (authMode === "login") {
+        await loginUser({ email, password });
+      } else {
+        await registerStaffUser({ email, password, displayName });
+      }
+      setAuthOpen(false);
+      resetAuthForm();
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "Authentication failed");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -36,7 +74,7 @@ export default function Root() {
                 </div>
                 <div className="hidden sm:block">
                   <h1 className="font-semibold text-lg">UniHub</h1>
-                  <p className="text-xs text-gray-500">Information Portal</p>
+                  {/* <p className="text-xs text-gray-500">Information Portal</p> */}
                 </div>
               </Link>
             </div>
@@ -62,9 +100,9 @@ export default function Root() {
               })}
             </nav>
 
-            {/* Search Bar - Desktop */}
-            <div className="hidden md:flex items-center flex-1 max-w-md ml-8">
-              <div className="relative w-full">
+            <div className="hidden md:flex items-center gap-3 ml-8 flex-1 justify-end">
+              {/* Search Bar - Desktop */}
+              <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   type="search"
@@ -74,6 +112,33 @@ export default function Root() {
                   className="pl-10 bg-gray-50"
                 />
               </div>
+              {!isLoading && (
+                <div className="flex items-center gap-2">
+                  {user ? (
+                    <>
+                      <Badge variant="secondary" className="gap-1">
+                        <Shield className="w-3.5 h-3.5" />
+                        {roleLabel}
+                      </Badge>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <User className="w-4 h-4" />
+                        <span className="max-w-36 truncate">{user.displayName}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={logoutUser}>
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Logout
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>
+                        <LogIn className="w-4 h-4 mr-2" />
+                        Login
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -90,7 +155,7 @@ export default function Root() {
           </div>
 
           {/* Mobile Search */}
-          <div className="md:hidden pb-4">
+          <div className="md:hidden pb-4 space-y-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
@@ -101,6 +166,29 @@ export default function Root() {
                 className="pl-10 bg-gray-50"
               />
             </div>
+            {!isLoading && (
+              <div className="flex flex-wrap gap-2">
+                {user ? (
+                  <>
+                    <Badge variant="secondary" className="gap-1">
+                      <Shield className="w-3.5 h-3.5" />
+                      {roleLabel}
+                    </Badge>
+                    <Button variant="outline" size="sm" onClick={logoutUser}>
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Login
+                    </Button>
+                  </>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -130,6 +218,49 @@ export default function Root() {
           </div>
         )}
       </header>
+
+      <Dialog
+        open={authOpen}
+        onOpenChange={(open) => {
+          setAuthOpen(open);
+          if (!open) resetAuthForm();
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{authMode === "login" ? "Login" : "Staff Registration"}</DialogTitle>
+            <DialogDescription>
+              {authMode === "login"
+                ? "Use a seeded student or staff account. Guests can continue without login."
+                : "Only staff accounts can be created in this phase."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@unihub.edu" />
+            </div>
+            {authMode === "register" && (
+              <div className="space-y-2">
+                <Label htmlFor="displayName">Display name</Label>
+                <Input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Admin Office" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+            </div>
+            {authError && <p className="text-sm text-red-600">{authError}</p>}
+            <div className="flex items-center gap-2 justify-end">
+              <Button variant="outline" onClick={() => setAuthOpen(false)}>Cancel</Button>
+              <Button onClick={handleAuthSubmit}>
+                {authMode === "login" ? "Login" : "Create Staff Account"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

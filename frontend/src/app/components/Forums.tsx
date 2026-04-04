@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
+import { Link } from "react-router";
 import { 
   MessagesSquare, 
   TrendingUp, 
@@ -14,9 +15,62 @@ import {
   Eye,
   ThumbsUp 
 } from "lucide-react";
+import { listForums } from "../api/services/forums.service";
+import { createForum } from "../api/services/forums.service";
+import { formatDistanceToNowStrict } from "date-fns";
+import { useAuth } from "../auth/AuthContext";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+
+type ForumCardItem = {
+  id: string;
+  title: string;
+  author: string;
+  category: string;
+  replies: number;
+  views: number;
+  likes: number;
+  lastActive: string;
+  createdAt: string;
+  tags: string[];
+  isPinned: boolean;
+};
 
 export default function Forums() {
+  const { user, isGuest } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [forumThreads, setForumThreads] = useState<ForumCardItem[]>([]);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newBody, setNewBody] = useState("");
+  const [newCategory, setNewCategory] = useState("General");
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    listForums().then((items) => {
+      if (!mounted) return;
+      setForumThreads(
+        items.map((thread) => ({
+          id: thread.id,
+          title: thread.title,
+          author: thread.postedBy.displayName,
+          category: thread.category,
+          replies: thread.counts.comments,
+          views: thread.counts.views,
+          likes: thread.counts.likes,
+          lastActive: formatDistanceToNowStrict(new Date(thread.repliedAt ?? thread.createdAt), { addSuffix: true }),
+          createdAt: thread.createdAt,
+          tags: thread.tags,
+          isPinned: thread.isPinned,
+        })),
+      );
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const categories = [
     { name: "Academic Support", count: 234, color: "bg-blue-100 text-blue-700" },
@@ -27,90 +81,51 @@ export default function Forums() {
     { name: "General", count: 198, color: "bg-gray-100 text-gray-700" },
   ];
 
-  const forumThreads = [
-    {
-      id: 1,
-      title: "How do I access the digital library from off-campus?",
-      author: "Sarah Chen",
-      category: "Academic Support",
-      replies: 12,
-      views: 245,
-      likes: 8,
-      lastActive: "15 mins ago",
-      tags: ["library", "vpn", "resources"],
-      isPinned: true,
-    },
-    {
-      id: 2,
-      title: "Best study spots on campus during finals week?",
-      author: "Michael Rodriguez",
-      category: "Campus Life",
-      replies: 34,
-      views: 512,
-      likes: 23,
-      lastActive: "1 hour ago",
-      tags: ["study", "finals", "campus"],
-      isPinned: false,
-    },
-    {
-      id: 3,
-      title: "Resume review - Career Services feedback",
-      author: "Emily Watson",
-      category: "Career Services",
-      replies: 8,
-      views: 167,
-      likes: 5,
-      lastActive: "2 hours ago",
-      tags: ["resume", "career", "advice"],
-      isPinned: false,
-    },
-    {
-      id: 4,
-      title: "WiFi connection issues in Engineering Building",
-      author: "David Kim",
-      category: "IT & Technology",
-      replies: 15,
-      views: 289,
-      likes: 11,
-      lastActive: "3 hours ago",
-      tags: ["wifi", "technical", "campus-it"],
-      isPinned: false,
-    },
-    {
-      id: 5,
-      title: "International student orientation - Spring 2026",
-      author: "Priya Patel",
-      category: "Student Affairs",
-      replies: 28,
-      views: 421,
-      likes: 19,
-      lastActive: "5 hours ago",
-      tags: ["international", "orientation", "new-students"],
-      isPinned: true,
-    },
-    {
-      id: 6,
-      title: "Looking for a study group - Advanced Calculus",
-      author: "James Thompson",
-      category: "Academic Support",
-      replies: 9,
-      views: 134,
-      likes: 6,
-      lastActive: "6 hours ago",
-      tags: ["study-group", "mathematics", "calculus"],
-      isPinned: false,
-    },
-  ];
-
-  const trendingThreads = forumThreads.slice(0, 3);
-  const recentThreads = [...forumThreads].sort((a, b) => 
-    parseInt(a.lastActive) - parseInt(b.lastActive)
+  const filteredThreads = useMemo(
+    () =>
+      forumThreads.filter((thread) => {
+        const haystack = `${thread.title} ${thread.author} ${thread.category} ${thread.tags.join(" ")}`.toLowerCase();
+        return haystack.includes(searchQuery.toLowerCase());
+      }),
+    [forumThreads, searchQuery],
   );
 
-  const ThreadList = ({ threads }: { threads: typeof forumThreads }) => (
+  const trendingThreads = filteredThreads.slice(0, 3);
+  const recentThreads = [...filteredThreads].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+
+  const handleCreateForum = async () => {
+    try {
+      setCreateError(null);
+      const thread = await createForum(newTitle, newBody, newCategory);
+      setForumThreads((current) => [
+        {
+          id: thread.id,
+          title: thread.title,
+          author: thread.postedBy.displayName,
+          category: thread.category,
+          replies: thread.counts.comments,
+          views: thread.counts.views,
+          likes: thread.counts.likes,
+          lastActive: formatDistanceToNowStrict(new Date(thread.createdAt), { addSuffix: true }),
+          createdAt: thread.createdAt,
+          tags: thread.tags,
+          isPinned: thread.isPinned,
+        },
+        ...current,
+      ]);
+      setCreateOpen(false);
+      setNewTitle("");
+      setNewBody("");
+      setNewCategory("General");
+    } catch (error) {
+      setCreateError(error instanceof Error ? error.message : "Unable to create forum thread");
+    }
+  };
+
+  const ThreadList = ({ threads }: { threads: ForumCardItem[] }) => (
     <div className="space-y-3">
       {threads.map((thread) => (
-        <Card key={thread.id} className="hover:shadow-md transition-shadow cursor-pointer">
+        <Card key={thread.id} className="hover:shadow-md transition-shadow">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <div className="hidden sm:flex flex-col items-center gap-1 pt-1">
@@ -163,6 +178,10 @@ export default function Forums() {
                     <span className="text-xs">{thread.lastActive}</span>
                   </div>
                 </div>
+
+                <Button asChild variant="link" className="p-0 h-auto mt-3">
+                  <Link to={`/forums/${thread.id}`}>View full thread →</Link>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -193,11 +212,41 @@ export default function Forums() {
             className="pl-10"
           />
         </div>
-        <Button className="sm:w-auto">
-          <MessagesSquare className="w-4 h-4 mr-2" />
-          New Discussion
-        </Button>
+        {!isGuest && user && (user.role === "student" || user.role === "staff") && (
+          <Button className="sm:w-auto" onClick={() => setCreateOpen(true)}>
+            <MessagesSquare className="w-4 h-4 mr-2" />
+            New Discussion
+          </Button>
+        )}
       </div>
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>New Forum Discussion</DialogTitle>
+            <DialogDescription>Create a discussion thread for students and staff.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="forum-title">Title</Label>
+              <Input id="forum-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Discussion title" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="forum-category">Category</Label>
+              <Input id="forum-category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="General" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="forum-body">Body</Label>
+              <Textarea id="forum-body" value={newBody} onChange={(e) => setNewBody(e.target.value)} placeholder="Write your discussion..." rows={5} />
+            </div>
+            {createError && <p className="text-sm text-red-600">{createError}</p>}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateForum}>Create</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Categories */}
       <Card>
@@ -239,7 +288,7 @@ export default function Forums() {
         </TabsList>
         
         <TabsContent value="all" className="mt-6">
-          <ThreadList threads={forumThreads} />
+          <ThreadList threads={filteredThreads} />
         </TabsContent>
         
         <TabsContent value="trending" className="mt-6">
