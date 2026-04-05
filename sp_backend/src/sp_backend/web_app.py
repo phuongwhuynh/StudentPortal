@@ -1,13 +1,16 @@
 from fastapi import FastAPI
-from sp_backend.routers import health_router
+from sp_backend.routers import health_router, user_router
+from sp_backend.middlewares.db_middleware import DBMiddleware
 
 
 def initialize_routers(app: FastAPI) -> FastAPI:
     app.include_router(health_router.router)
+    app.include_router(user_router.router)
     return app
 
 
 def initialize_middlewares(app: FastAPI) -> FastAPI:
+    app.add_middleware(DBMiddleware)
     return app
 
 

@@ -10,5 +10,12 @@ class Settings(BaseSettings):
     DB_PORT: int = 5433
     DB_NAME: str = "student_portal"
 
+    SECRET_KEY: str = "your_secret_key"
+    JWT_ALGORITHM: str = "HS256"
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
 
 settings = Settings()
