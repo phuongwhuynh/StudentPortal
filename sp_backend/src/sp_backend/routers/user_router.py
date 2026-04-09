@@ -13,7 +13,7 @@ from sp_backend.utils.jwt import encode_jwt
 router = APIRouter(tags=["User"])
 
 
-@router.get("/signin", status_code=status.HTTP_200_OK, response_class=JSONResponse)
+@router.post("/signin", status_code=status.HTTP_200_OK, response_class=JSONResponse)
 async def sign_in(request: Request, signin_request: UserSignInRequest) -> Response:
     service = UserSignInService(
         db_session=request.state.db, signin_request=signin_request
