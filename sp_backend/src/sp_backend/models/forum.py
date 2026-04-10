@@ -62,7 +62,6 @@ class Forum(Base):
     poster: Mapped[User] = relationship(
         "User",
         back_populates="forums_posted",
-        lazy="joined",
     )
 
     __table_args__ = (

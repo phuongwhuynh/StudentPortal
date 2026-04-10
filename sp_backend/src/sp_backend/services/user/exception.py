@@ -11,3 +11,8 @@ class PermissionException(HTTPException):
         self, message: str = "You do not have permission to perform this action."
     ):
         super().__init__(status_code=403, detail=message)
+
+
+class UserNotFoundException(HTTPException):
+    def __init__(self):
+        super().__init__(status_code=404, detail="User not found.")

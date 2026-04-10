@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your_secret_key"
     JWT_ALGORITHM: str = "HS256"
 
+    EMBEDDING_URL: str = "http://localhost:11434/api/embeddings"
+    EMBEDDING_MODEL: str = "nomic-embed-text"
+
     class Config:
         env_file = ".env"
         extra = "ignore"
