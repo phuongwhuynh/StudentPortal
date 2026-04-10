@@ -1,10 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 
-
 if TYPE_CHECKING:
     from sp_backend.models.forum import Forum
     from sp_backend.models.content_view import ContentView
+    from sp_backend.models.announcement import Announcement
+
 from sp_backend.db.base import Base
 from sqlalchemy import Integer, String, func, DateTime, Enum
 from sp_backend.constants.user import UserRole
@@ -50,6 +51,10 @@ class User(Base):
     )
 
     forums_posted: Mapped[list[Forum]] = relationship("Forum", back_populates="poster")
+    announcements_posted: Mapped[list[Announcement]] = relationship(
+        "Announcement", back_populates="poster"
+    )
+
     content_views: Mapped[list[ContentView]] = relationship(
         "ContentView", back_populates="user", cascade="all, delete-orphan"
     )

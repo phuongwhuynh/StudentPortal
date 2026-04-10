@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sp_backend.models.user import User
-    from sp_backend.models.forum_daily_view import ForumDailyView
+    from sp_backend.models.content_daily_view import ForumDailyView
 from sqlalchemy import (
     Integer,
     String,
