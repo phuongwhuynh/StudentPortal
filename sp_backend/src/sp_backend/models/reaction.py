@@ -23,7 +23,9 @@ class Reaction(Base):
     __tablename__ = "reactions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    content_type: Mapped[ContentType] = mapped_column(Enum[ContentType], nullable=False)
+    content_type: Mapped[ContentType] = mapped_column(
+        Enum(ContentType, name="contenttype"), nullable=False
+    )
     content_id: Mapped[int] = mapped_column(
         Integer, nullable=False
     )  # ko gắn foreign key, application logic tự handle

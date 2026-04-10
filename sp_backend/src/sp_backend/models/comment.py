@@ -16,7 +16,9 @@ from datetime import datetime
 class Comment(Base):
     __tablename__ = "comments"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    content_type: Mapped[ContentType] = mapped_column(Enum(ContentType), nullable=False)
+    content_type: Mapped[ContentType] = mapped_column(
+        Enum(ContentType, name="contenttype"), nullable=False
+    )
     content_id: Mapped[int] = mapped_column(Integer, nullable=False)
     parent_comment_id: Mapped[int] = mapped_column(
         Integer, ForeignKey("comments.id"), nullable=True
@@ -29,7 +31,11 @@ class Comment(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     parent_comment: Mapped[Comment] = relationship(
-        "Comment", back_populates="children_comments", lazy="joined"
+        "Comment",
+        back_populates="children_comments",
+        remote_side=[id],
+        foreign_keys=[parent_comment_id],
+        lazy="joined",
     )
     children_comments: Mapped[list[Comment]] = relationship(
         "Comment", back_populates="parent_comment", cascade="all, delete-orphan"

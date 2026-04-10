@@ -1,8 +1,8 @@
 """init tables
 
-Revision ID: 9a760c1f6d42
+Revision ID: 7cba3f075e8c
 Revises:
-Create Date: 2026-04-10 19:13:06.484922
+Create Date: 2026-04-10 19:30:48.714686
 
 """
 
@@ -10,10 +10,10 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from pgvector.sqlalchemy import VECTOR
 
 # revision identifiers, used by Alembic.
-revision: str = "9a760c1f6d42"
+revision: str = "7cba3f075e8c"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -26,7 +26,11 @@ def upgrade() -> None:
     op.create_table(
         "content_daily_views",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("content_type", sa.Enum(), nullable=False),
+        sa.Column(
+            "content_type",
+            sa.Enum("FORUM", "QUESTION", "ANNOUNCEMENT", name="contenttype"),
+            nullable=False,
+        ),
         sa.Column("content_id", sa.Integer(), nullable=False),
         sa.Column("content_date", sa.Date(), nullable=False),
         sa.Column("views_count", sa.Integer(), nullable=False),
@@ -70,9 +74,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("title", sa.String(length=300), nullable=False),
         sa.Column("body", sa.Text(), nullable=False),
-        sa.Column(
-            "body_embedding", pgvector.sqlalchemy.vector.VECTOR(dim=768), nullable=False
-        ),
+        sa.Column("body_embedding", VECTOR(dim=768), nullable=False),
         sa.Column(
             "category",
             sa.Enum(
@@ -199,9 +201,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("title", sa.String(length=300), nullable=False),
         sa.Column("body", sa.Text(), nullable=False),
-        sa.Column(
-            "body_embedding", pgvector.sqlalchemy.vector.VECTOR(dim=768), nullable=False
-        ),
+        sa.Column("body_embedding", VECTOR(dim=768), nullable=False),
         sa.Column(
             "category",
             sa.Enum(
@@ -255,9 +255,7 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.Column("title", sa.String(length=300), nullable=False),
         sa.Column("body", sa.Text(), nullable=False),
-        sa.Column(
-            "body_embedding", pgvector.sqlalchemy.vector.VECTOR(dim=768), nullable=False
-        ),
+        sa.Column("body_embedding", VECTOR(dim=768), nullable=False),
         sa.Column(
             "category",
             sa.Enum(
@@ -345,7 +343,11 @@ def upgrade() -> None:
     op.create_table(
         "reactions",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column("content_type", sa.Enum(), nullable=False),
+        sa.Column(
+            "content_type",
+            sa.Enum("FORUM", "QUESTION", "ANNOUNCEMENT", name="contenttype"),
+            nullable=False,
+        ),
         sa.Column("content_id", sa.Integer(), nullable=False),
         sa.Column("user_id", sa.Integer(), nullable=False),
         sa.Column(

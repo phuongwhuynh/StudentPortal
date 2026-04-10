@@ -64,19 +64,16 @@ class Question(Base):
     poster: Mapped[User] = relationship(
         "User",
         back_populates="questions_posted",
-        lazy="joined",
         foreign_keys=[posted_by],
     )
     completer: Mapped[User | None] = relationship(
         "User",
         back_populates="questions_completed",
-        lazy="joined",
         foreign_keys=[completed_by],
     )
     canceller: Mapped[User | None] = relationship(
         "User",
         back_populates="questions_cancelled",
-        lazy="joined",
         foreign_keys=[cancelled_by],
     )
     __table_args__ = (

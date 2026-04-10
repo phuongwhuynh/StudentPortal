@@ -5,6 +5,7 @@ if TYPE_CHECKING:
     from sp_backend.models.forum import Forum
     from sp_backend.models.content_view import ContentView
     from sp_backend.models.announcement import Announcement
+    from sp_backend.models.question import Question
 
 from sp_backend.db.base import Base
 from sqlalchemy import Integer, String, func, DateTime, Enum
@@ -53,6 +54,15 @@ class User(Base):
     forums_posted: Mapped[list[Forum]] = relationship("Forum", back_populates="poster")
     announcements_posted: Mapped[list[Announcement]] = relationship(
         "Announcement", back_populates="poster"
+    )
+    questions_posted: Mapped[list[Question]] = relationship(
+        "Question", back_populates="poster", foreign_keys="[Question.posted_by]"
+    )
+    questions_completed: Mapped[list[Question]] = relationship(
+        "Question", back_populates="completer", foreign_keys="[Question.completed_by]"
+    )
+    questions_cancelled: Mapped[list[Question]] = relationship(
+        "Question", back_populates="canceller", foreign_keys="[Question.cancelled_by]"
     )
 
     content_views: Mapped[list[ContentView]] = relationship(

@@ -25,7 +25,7 @@ class CreateForumService:
         self.user: User = None
 
     def validate_request(self) -> None:
-        self.user = self.db_session.query(User).filter_by(id=self.user_id).first()
+        self.user = self.db_session.get(User, self.user_id)
         if not self.user:
             raise UserNotFoundException()
 
@@ -42,9 +42,13 @@ class CreateForumService:
             category=self.create_forum_request.category,
             posted_by=self.user_id,
         )
-        self.db_session.add(self.forum)
-        self.db_session.commit()
-        self.db_session.refresh(self.forum)
+        try:
+            self.db_session.add(self.forum)
+            self.db_session.commit()
+            self.db_session.refresh(self.forum)
+        except:
+            self.db_session.rollback()
+            raise
 
     def invoke(self) -> CreateForumResponse:
         self.validate_request()
