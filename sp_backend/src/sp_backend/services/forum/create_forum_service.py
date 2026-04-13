@@ -31,7 +31,7 @@ class CreateForumService:
 
     def generate_embedding(self) -> None:
         self.embedding = EmbeddingService.get_embedding(
-            text=self.create_forum_request.body
+            text=self.create_forum_request.title + " " + self.create_forum_request.body
         )
 
     def create_forum(self) -> None:

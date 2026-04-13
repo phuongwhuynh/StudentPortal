@@ -4,6 +4,7 @@ from sp_backend.routers import (
     user_router,
     forum_router,
     announcement_router,
+    question_router,
 )
 from sp_backend.middlewares.db_middleware import DBMiddleware
 
@@ -13,6 +14,7 @@ def initialize_routers(app: FastAPI) -> FastAPI:
     app.include_router(user_router.router)
     app.include_router(forum_router.router)
     app.include_router(announcement_router.router)
+    app.include_router(question_router.router)
     return app
 
 

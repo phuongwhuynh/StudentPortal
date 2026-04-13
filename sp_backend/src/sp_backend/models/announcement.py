@@ -18,7 +18,7 @@ class Announcement(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     title: Mapped[str] = mapped_column(String(300), nullable=False)
     body: Mapped[str] = mapped_column(Text, nullable=False)
-    body_embedding: Mapped[list[float]] = mapped_column(
+    embedding: Mapped[list[float]] = mapped_column(
         Vector(EMBEDDING_DIM),
         nullable=False,
     )
@@ -60,9 +60,9 @@ class Announcement(Base):
     )
     __table_args__ = (
         Index(
-            "ix_announcements_body_embedding_hnsw",
-            "body_embedding",
+            "ix_announcements_embedding_hnsw",
+            "embedding",
             postgresql_using="hnsw",
-            postgresql_ops={"body_embedding": "vector_cosine_ops"},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
     )

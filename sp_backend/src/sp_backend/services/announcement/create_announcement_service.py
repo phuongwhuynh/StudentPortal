@@ -39,14 +39,16 @@ class CreateAnnouncementService:
 
     def generate_embedding(self) -> None:
         self.embedding = EmbeddingService.get_embedding(
-            text=self.create_announcement_request.body
+            text=self.create_announcement_request.title
+            + " "
+            + self.create_announcement_request.body
         )
 
     def create_announcement(self) -> None:
         self.announcement = Announcement(
             title=self.create_announcement_request.title,
             body=self.create_announcement_request.body,
-            body_embedding=self.embedding,
+            embedding=self.embedding,
             category=self.create_announcement_request.category,
             priority=self.create_announcement_request.priority,
             posted_by=self.user_id,

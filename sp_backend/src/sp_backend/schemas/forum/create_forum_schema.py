@@ -56,6 +56,15 @@ class CreateForumResponse(BaseModel):
         description="Information about the user who posted the forum",
         example=PosterInfo(id=1, email="user@example.com", full_name="John Doe"),
     )
+    views_count: int = Field(
+        ..., description="The number of views the forum post has received", example=0
+    )
+    likes_count: int = Field(
+        ..., description="The number of likes the forum post has received", example=0
+    )
+    comments_count: int = Field(
+        ..., description="The number of comments on the forum post", example=0
+    )
     created_at: datetime = Field(
         ...,
         description="The timestamp when the forum post was created",
@@ -65,13 +74,4 @@ class CreateForumResponse(BaseModel):
         ...,
         description="The timestamp when the forum post was last updated",
         example="2024-01-01T12:00:00Z",
-    )
-    views_count: int = Field(
-        ..., description="The number of views the forum post has received", example=0
-    )
-    likes_count: int = Field(
-        ..., description="The number of likes the forum post has received", example=0
-    )
-    comments_count: int = Field(
-        ..., description="The number of comments on the forum post", example=0
     )
