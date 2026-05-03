@@ -21,7 +21,10 @@ export default function ForumThreadDetail() {
     getForumById(id).then((item) => setThread(item ?? null));
   }, [id]);
 
-  const comments = useMemo(() => thread?.comments ?? [], [thread]);
+  const comments = useMemo(
+    () => [...(thread?.comments ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [thread],
+  );
 
   const addComment = () => {
     if (!thread || !commentBody.trim() || !user) return;

@@ -21,7 +21,10 @@ export default function QuestionDetail() {
     getQuestionById(id).then((item) => setQuestion(item ?? null));
   }, [id]);
 
-  const comments = useMemo(() => question?.comments ?? [], [question]);
+  const comments = useMemo(
+    () => [...(question?.comments ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [question],
+  );
 
   const addReply = () => {
     if (!question || !commentBody.trim() || !user) return;

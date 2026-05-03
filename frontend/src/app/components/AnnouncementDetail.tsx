@@ -21,7 +21,10 @@ export default function AnnouncementDetail() {
     getAnnouncementById(id).then((item) => setPost(item ?? null));
   }, [id]);
 
-  const comments = useMemo(() => post?.comments ?? [], [post]);
+  const comments = useMemo(
+    () => [...(post?.comments ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [post],
+  );
 
   const addComment = () => {
     if (!post || !commentBody.trim() || !user) return;
