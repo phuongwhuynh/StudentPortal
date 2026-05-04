@@ -1,7 +1,7 @@
 import type { UserRole } from "./auth";
 
 export type ContentType = "forum" | "announcement" | "question";
-export type QuestionStatus = "open" | "completed" | "cancelled";
+export type QuestionStatus = "in-progress" | "completed" | "cancelled";
 
 export interface MetaCounts {
   views: number;
@@ -54,6 +54,7 @@ export interface AnnouncementPost {
   priority: "info" | "warning" | "success" | "urgent";
   postedBy: ContentUserRef;
   createdAt: string;
+  expiresAt?: string | null;
   repliedAt?: string | null;
   deletedAt?: string | null;
   deletedBy?: ContentUserRef | null;
