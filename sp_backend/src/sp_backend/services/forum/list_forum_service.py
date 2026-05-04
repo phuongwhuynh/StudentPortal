@@ -3,7 +3,11 @@ from sp_backend.models.user import User
 from sp_backend.models.content_daily_view import ContentDailyView
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, Query, joinedload
-from sp_backend.schemas.forum.forum_list_schema import ForumListResponse, ForumInfo
+from sp_backend.schemas.forum.get_forum_schema import (
+    PosterInfo,
+    GetForumResponse,
+    ForumListResponse,
+)
 from sp_backend.constants.forum import SortOptions, ForumCategory
 from typing import Optional
 from sp_backend.services.forum.exception import InvalidQueryParameterException
@@ -122,11 +126,14 @@ class ListForumService:
         forums: list[Forum] = self.query.all()
         self.forum_list_response = ForumListResponse(
             forums=[
-                ForumInfo(
+                GetForumResponse(
                     id=forum.id,
                     title=forum.title,
                     category=forum.category,
-                    posted_by=forum.poster.full_name,
+                    posted_by=PosterInfo(
+                        id=forum.poster.id,
+                        full_name=forum.poster.full_name,
+                    ),
                     body=forum.body,
                     created_at=forum.created_at,
                     updated_at=forum.updated_at,

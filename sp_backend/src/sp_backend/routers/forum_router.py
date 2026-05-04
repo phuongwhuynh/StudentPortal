@@ -5,7 +5,10 @@ from sp_backend.schemas.forum.create_forum_schema import (
     CreateForumRequest,
     CreateForumResponse,
 )
-from sp_backend.schemas.forum.forum_list_schema import ForumListResponse
+from sp_backend.schemas.forum.get_forum_schema import (
+    ForumListResponse,
+    GetForumResponse,
+)
 from sp_backend.dependencies.auth import get_current_user
 from sp_backend.services.forum.create_forum_service import CreateForumService
 from sp_backend.services.forum.list_forum_service import ListForumService
@@ -55,3 +58,11 @@ async def list_forums(
     )
     forum_list_response: ForumListResponse = service.invoke()
     return forum_list_response
+
+
+@router.get("/{forum_id}", status_code=status.HTTP_200_OK, response_class=JSONResponse)
+async def get_forum_details(
+    request: Request,
+    forum_id: int,
+) -> GetForumResponse:
+    pass

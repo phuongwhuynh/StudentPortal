@@ -3,7 +3,18 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
-class ForumInfo(BaseModel):
+class PosterInfo(BaseModel):
+    id: int = Field(
+        ...,
+        description="The unique identifier of the user who posted the forum",
+        example=1,
+    )
+    full_name: str = Field(
+        ..., description="The name of the user who posted the forum", example="John Doe"
+    )
+
+
+class GetForumResponse(BaseModel):
     id: int = Field(
         ..., description="The unique identifier of the forum post", example=1
     )
@@ -22,10 +33,9 @@ class ForumInfo(BaseModel):
         description="The category of the forum post",
         example="General",
     )
-    posted_by: str = Field(
+    posted_by: PosterInfo = Field(
         ...,
-        description="The name of the user who posted the forum",
-        example="John Doe",
+        description="Information about the user who posted the forum",
     )
     views_count: int = Field(
         ..., description="The number of views the forum post has received", example=0
@@ -44,4 +54,4 @@ class ForumInfo(BaseModel):
 
 
 class ForumListResponse(BaseModel):
-    forums: list[ForumInfo] = Field(..., description="List of forum posts")
+    forums: list[GetForumResponse] = Field(..., description="List of forum posts")
