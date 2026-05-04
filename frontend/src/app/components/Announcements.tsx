@@ -86,8 +86,6 @@ export default function Announcements() {
         return { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" };
       case "warning":
         return { icon: Megaphone, color: "text-orange-600", bg: "bg-orange-50" };
-      case "success":
-        return { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" };
       default:
         return { icon: Info, color: "text-blue-600", bg: "bg-blue-50" };
     }
@@ -100,7 +98,6 @@ export default function Announcements() {
       case "warning":
         return <Badge className="bg-orange-500">Warning</Badge>;
       case "info":
-      case "success":
         return <Badge className="bg-blue-500">New Info</Badge>;
       default:
         return <Badge variant="secondary">Info</Badge>;
@@ -120,8 +117,7 @@ export default function Announcements() {
     const matchesSearch = announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          announcement.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === "all" || announcement.category === filterCategory;
-    const normalizedPriority = announcement.type === "success" ? "info" : announcement.type;
-    const matchesPriority = priorityFilter === "all" || normalizedPriority === priorityFilter;
+    const matchesPriority = priorityFilter === "all" || announcement.type === priorityFilter;
     return matchesSearch && matchesCategory && matchesPriority;
   }), [announcements, searchQuery, filterCategory, priorityFilter]);
 
@@ -301,7 +297,7 @@ export default function Announcements() {
               >
                 <span className="font-medium text-sm">{priority.label}</span>
                 <Badge variant="secondary" className={`text-xs ${priority.color}`}>
-                  {priority.value === "all" ? announcements.length : announcements.filter((item) => (item.type === "success" ? "info" : item.type) === priority.value).length}
+                  {priority.value === "all" ? announcements.length : announcements.filter((item) => item.type === priority.value).length}
                 </Badge>
               </button>
             ))}

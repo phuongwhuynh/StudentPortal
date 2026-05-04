@@ -53,7 +53,13 @@ export async function getQuestionById(id: string): Promise<QuestionThread | unde
 
 export async function addQuestionReply(id: string, body: string, user: User): Promise<QuestionThread> {
   // Real API: POST ${API_ENDPOINTS.questionReplies(id)}
-  return addQuestionReplyMock(id, body, user);
+  return addQuestionReplyMock(id, body, user, null);
+}
+
+export async function addQuestionReplyToComment(id: string, body: string, user: User, parentCommentId: string | null = null): Promise<QuestionThread> {
+  // Real API: POST ${API_ENDPOINTS.questionReplies(id)}
+  // Payload may include: { body, parentCommentId }
+  return addQuestionReplyMock(id, body, user, parentCommentId);
 }
 
 export async function acceptQuestion(id: string, user: User): Promise<QuestionThread> {

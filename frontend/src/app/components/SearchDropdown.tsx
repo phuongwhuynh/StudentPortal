@@ -108,11 +108,9 @@ export default function SearchDropdown({ query, isOpen, onClose }: SearchDropdow
                             ? "bg-red-100 text-red-700"
                             : result.priority === "warning"
                               ? "bg-orange-100 text-orange-700"
-                              : result.priority === "success"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-blue-100 text-blue-700"
+                              : "bg-blue-100 text-blue-700"
                         }`}>
-                          {result.priority?.toUpperCase()}
+                          {result.priority === "info" ? "NEW INFO" : result.priority?.toUpperCase()}
                         </span>
                         {result.expiresAt && (
                           <span className={isExpired(result.expiresAt) ? "text-red-600 font-medium" : ""}>
