@@ -39,6 +39,7 @@ export default function QuestionsArchive() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [currentPage, setCurrentPage] = useState(1);
   const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -80,6 +81,10 @@ export default function QuestionsArchive() {
 
   const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("recent");
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterCategory, sortMode]);
+
   const relevanceScore = (item: any, q: string) => {
     const hay = `${item.question} ${item.answer}`.toLowerCase();
     const occurrences = (hay.match(new RegExp(q, "gi")) || []).length;
@@ -95,6 +100,55 @@ export default function QuestionsArchive() {
     });
     return filteredQuestions;
   }, [filteredQuestions, sortMode, searchQuery]);
+
+  const itemsPerPage = 10;
+  const totalPages = Math.max(1, Math.ceil(sortedFilteredQuestions.length / itemsPerPage));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedQuestions = sortedFilteredQuestions.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
+
+  const PaginationControls = () => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).filter((number) => {
+      if (totalPages <= 5) return true;
+      return number === 1 || number === totalPages || Math.abs(number - safePage) <= 1;
+    });
+
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+        <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}>
+          Previous
+        </Button>
+        {pageNumbers.map((number, index) => {
+          const previousNumber = pageNumbers[index - 1];
+          const isGap = index > 0 && previousNumber !== undefined && number - previousNumber > 1;
+
+          if (isGap) {
+            return (
+              <span key={`gap-${number}`} className="px-2 text-gray-400">
+                ...
+              </span>
+            );
+          }
+
+          return (
+            <Button
+              key={number}
+              variant={number === safePage ? "default" : "outline"}
+              size="sm"
+              className={number === safePage ? "bg-blue-600 text-white" : ""}
+              onClick={() => setCurrentPage(number)}
+            >
+              {number}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setCurrentPage(safePage + 1)}>
+          Next
+        </Button>
+      </div>
+    );
+  };
 
     const load = async (opts?: { q?: string; category?: string; sort?: "asc" | "desc" }) => {
       let mounted = true;
@@ -299,7 +353,7 @@ export default function QuestionsArchive() {
       <div>
         <h2 className="text-xl font-semibold mb-4">All Questions ({sortedFilteredQuestions.length})</h2>
         <Accordion type="single" collapsible className="space-y-3">
-          {sortedFilteredQuestions.map((q) => (
+          {paginatedQuestions.map((q) => (
             <AccordionItem key={q.id} value={`item-${q.id}`} className="border rounded-lg">
               <Card className="border-0">
                 <AccordionTrigger className="hover:no-underline px-6">
@@ -372,7 +426,7 @@ export default function QuestionsArchive() {
         </Accordion>
       </div>
 
-      {filteredQuestions.length === 0 && (
+      {sortedFilteredQuestions.length === 0 && (
         <Card>
           <CardContent className="py-12 text-center">
             <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -381,6 +435,8 @@ export default function QuestionsArchive() {
           </CardContent>
         </Card>
       )}
+
+      <PaginationControls />
 
       {/* CTA */}
       <Card className="bg-blue-50 border-blue-200">

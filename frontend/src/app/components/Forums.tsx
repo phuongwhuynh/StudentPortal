@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Input } from "./ui/input";
 import { Link } from "react-router";
 import { 
@@ -42,12 +41,17 @@ export default function Forums() {
   const { user, isGuest } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [forumThreads, setForumThreads] = useState<ForumCardItem[]>([]);
+  const [allPage, setAllPage] = useState(1);
+  const [trendingPage, setTrendingPage] = useState(1);
+  const [recentPage, setRecentPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
   const [newCategory, setNewCategory] = useState("General");
   const [createError, setCreateError] = useState<string | null>(null);
   const [likedThreads, setLikedThreads] = useState<Record<string, boolean>>({});
+
+  const itemsPerPage = 10;
 
   const forumCategoryOptions = ["Academic Support", "Campus Life", "Career Services", "IT & Technology", "Student Affairs", "General"];
 
@@ -115,18 +119,92 @@ export default function Forums() {
 
   const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("trending");
 
+  useEffect(() => {
+    setAllPage(1);
+    setTrendingPage(1);
+    setRecentPage(1);
+  }, [searchQuery, sortMode]);
+
   const relevanceScore = (thread: ForumCardItem, q: string) => {
     const hay = `${thread.title} ${thread.body}`.toLowerCase();
     return (hay.match(new RegExp(q, "gi")) || []).length;
   };
 
-  const trendingThreads = useMemo(() => [...filteredThreads].sort((a, b) => b.likes - a.likes).slice(0, 3), [filteredThreads]);
+  const trendingThreads = useMemo(() => [...filteredThreads].sort((a, b) => b.likes - a.likes), [filteredThreads]);
   const recentThreads = useMemo(() => [...filteredThreads].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)), [filteredThreads]);
   const relevantThreads = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     if (!q) return filteredThreads;
     return [...filteredThreads].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
   }, [filteredThreads, searchQuery]);
+
+  const allThreads = sortMode === "relevant" && searchQuery ? relevantThreads : filteredThreads;
+
+  const paginate = (items: ForumCardItem[], page: number) => {
+    const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
+    const currentPage = Math.min(page, totalPages);
+    return {
+      currentPage,
+      totalPages,
+      items: items.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    };
+  };
+
+  const PaginationControls = ({
+    page,
+    totalPages,
+    onPageChange,
+  }: {
+    page: number;
+    totalPages: number;
+    onPageChange: (page: number) => void;
+  }) => {
+    if (totalPages <= 1) return null;
+
+    const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).filter((number) => {
+      if (totalPages <= 5) return true;
+      return number === 1 || number === totalPages || Math.abs(number - page) <= 1;
+    });
+
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+        <Button variant="outline" size="sm" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
+          Previous
+        </Button>
+        {pageNumbers.map((number, index) => {
+          const previousNumber = pageNumbers[index - 1];
+          const isGap = index > 0 && previousNumber !== undefined && number - previousNumber > 1;
+
+          if (isGap) {
+            return (
+              <span key={`gap-${number}`} className="px-2 text-gray-400">
+                ...
+              </span>
+            );
+          }
+
+          return (
+            <Button
+              key={number}
+              variant={number === page ? "default" : "outline"}
+              size="sm"
+              className={number === page ? "bg-blue-600 text-white" : ""}
+              onClick={() => onPageChange(number)}
+            >
+              {number}
+            </Button>
+          );
+        })}
+        <Button variant="outline" size="sm" disabled={page === totalPages} onClick={() => onPageChange(page + 1)}>
+          Next
+        </Button>
+      </div>
+    );
+  };
+
+  const allPagination = paginate(allThreads, allPage);
+  const trendingPagination = paginate(trendingThreads, trendingPage);
+  const recentPagination = paginate(recentThreads, recentPage);
 
   const handleCreateForum = async () => {
     try {
@@ -251,6 +329,10 @@ export default function Forums() {
     </div>
   );
 
+  const displayedAllThreads = allPagination.items;
+  const displayedTrendingThreads = trendingPagination.items;
+  const displayedRecentThreads = recentPagination.items;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -358,39 +440,19 @@ export default function Forums() {
       </Card>
 
       {/* Forum Threads */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-3">
-          <TabsTrigger value="all">All Discussions</TabsTrigger>
-          <TabsTrigger value="trending">
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Trending
-          </TabsTrigger>
-          <TabsTrigger value="recent">
-            <Clock className="w-4 h-4 mr-2" />
-            Recent
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="all" className="mt-6">
-          <ThreadList threads={sortMode === "relevant" && searchQuery ? relevantThreads : filteredThreads} />
-        </TabsContent>
-        
-        <TabsContent value="trending" className="mt-6">
-          <ThreadList threads={trendingThreads} />
-        </TabsContent>
-        
-        <TabsContent value="recent" className="mt-6">
-          <ThreadList threads={recentThreads} />
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">All Discussions</h2>
+            <p className="text-sm text-gray-500">Use the sort control above to switch between trending, recent, and relevant views.</p>
+          </div>
+          <Badge variant="secondary" className="shrink-0">
+            {allThreads.length} results
+          </Badge>
+        </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-center gap-2 pt-4">
-        <Button variant="outline" size="sm" disabled>Previous</Button>
-        <Button variant="outline" size="sm" className="bg-blue-600 text-white">1</Button>
-        <Button variant="outline" size="sm">2</Button>
-        <Button variant="outline" size="sm">3</Button>
-        <Button variant="outline" size="sm">Next</Button>
+        <ThreadList threads={displayedAllThreads} />
+        <PaginationControls page={allPagination.currentPage} totalPages={allPagination.totalPages} onPageChange={setAllPage} />
       </div>
     </div>
   );

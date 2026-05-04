@@ -7,12 +7,14 @@ import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { useAuth } from "../auth/AuthContext";
+import SearchDropdown from "./SearchDropdown";
 
 export default function Root() {
   const location = useLocation();
   const { user, isGuest, isLoading, loginUser, logoutUser, continueAsGuest, registerStaffUser } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchDropdownOpen, setSearchDropdownOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [email, setEmail] = useState("");
@@ -100,20 +102,34 @@ export default function Root() {
               })}
             </nav>
 
-            <div className="hidden md:flex items-center gap-3 ml-8 flex-1 justify-end">
-              {/* Search Bar - Desktop */}
-              <div className="relative w-full max-w-md">
+            {/* Search Bar - Desktop */}
+            <div className="hidden md:flex items-center gap-3 ml-8 flex-1">
+              <div className="relative w-full">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   type="search"
                   placeholder="Search forums, announcements, Q&A..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setSearchDropdownOpen(true);
+                  }}
+                  onFocus={() => searchQuery && setSearchDropdownOpen(true)}
+                  onBlur={() => setTimeout(() => setSearchDropdownOpen(false), 200)}
                   className="pl-10 bg-gray-50"
                 />
+                <SearchDropdown
+                  query={searchQuery}
+                  isOpen={searchDropdownOpen}
+                  onClose={() => setSearchDropdownOpen(false)}
+                />
               </div>
+            </div>
+
+            {/* User/Auth Section - Desktop */}
+            <div className="hidden md:flex items-center gap-2">
               {!isLoading && (
-                <div className="flex items-center gap-2">
+                <>
                   {user ? (
                     <>
                       <Badge variant="secondary" className="gap-1">
@@ -130,14 +146,12 @@ export default function Root() {
                       </Button>
                     </>
                   ) : (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>
-                        <LogIn className="w-4 h-4 mr-2" />
-                        Login
-                      </Button>
-                    </>
+                    <Button variant="outline" size="sm" onClick={() => { setAuthMode("login"); setAuthOpen(true); }}>
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Login
+                    </Button>
                   )}
-                </div>
+                </>
               )}
             </div>
 

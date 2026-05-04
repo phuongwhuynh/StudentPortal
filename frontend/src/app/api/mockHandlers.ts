@@ -306,3 +306,111 @@ export async function isCommentLikedByUserMock(commentId: string, userId: string
   const likedSet = commentLikeByUser[commentId];
   return delay(Boolean(likedSet?.has(userId)));
 }
+
+export type GlobalSearchResult = {
+  id: string;
+  type: "forum" | "announcement" | "question";
+  title: string;
+  body: string;
+  category: string;
+  createdAt: string;
+  url: string;
+  // forum specific
+  likes?: number;
+  replies?: number;
+  // announcement specific
+  priority?: string;
+  expiresAt?: string | null;
+  // question specific
+  status?: string;
+  questionReplies?: number;
+};
+
+export async function globalSearchMock(query: string): Promise<GlobalSearchResult[]> {
+  if (!query.trim()) return delay([]);
+
+  const q = query.toLowerCase();
+  const results: GlobalSearchResult[] = [];
+
+  // Calculate semantic relevance score
+  const scoreRelevance = (text: string): number => {
+    const lower = text.toLowerCase();
+    const words = q.split(/\s+/).filter(w => w.length > 0);
+    let score = 0;
+    
+    // Exact phrase match: highest score
+    if (lower.includes(q)) score += 10;
+    
+    // Word matches
+    words.forEach(word => {
+      const matches = (lower.match(new RegExp(word, 'g')) || []).length;
+      score += matches * 3;
+    });
+    
+    return score;
+  };
+
+  // Search forums
+  forumThreads.forEach((thread) => {
+    const textScore = scoreRelevance(`${thread.title} ${thread.body} ${thread.category}`);
+    if (textScore > 0) {
+      results.push({
+        id: thread.id,
+        type: "forum",
+        title: thread.title,
+        body: thread.body,
+        category: thread.category,
+        createdAt: thread.createdAt,
+        url: `/forums/${thread.id}`,
+        likes: thread.counts.likes,
+        replies: thread.counts.comments,
+        _score: textScore,
+      } as any);
+    }
+  });
+
+  // Search announcements
+  announcements.forEach((ann) => {
+    const textScore = scoreRelevance(`${ann.title} ${ann.body} ${ann.category}`);
+    if (textScore > 0) {
+      results.push({
+        id: ann.id,
+        type: "announcement",
+        title: ann.title,
+        body: ann.body,
+        category: ann.category,
+        createdAt: ann.createdAt,
+        url: `/announcements/${ann.id}`,
+        priority: ann.priority,
+        expiresAt: ann.expiresAt ?? null,
+        _score: textScore,
+      } as any);
+    }
+  });
+
+  // Search questions
+  questions.forEach((question) => {
+    const textScore = scoreRelevance(`${question.title} ${question.body} ${question.category}`);
+    if (textScore > 0) {
+      results.push({
+        id: question.id,
+        type: "question",
+        title: question.title,
+        body: question.body,
+        category: question.category,
+        createdAt: question.createdAt,
+        url: `/questions/${question.id}`,
+        status: question.status,
+        questionReplies: question.counts.comments,
+        _score: textScore,
+      } as any);
+    }
+  });
+
+  // Sort by relevance score and return top 8 results
+  const sorted = results.sort((a, b) => (b as any)._score - (a as any)._score);
+  return delay(sorted.slice(0, 8).map(r => {
+    const { _score, ...result } = r as any;
+    return result as GlobalSearchResult;
+  }));
+}
