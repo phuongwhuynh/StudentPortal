@@ -14,4 +14,5 @@ export const API_ENDPOINTS = {
   questionById: (id: string) => `${API_BASE_URL}/questions/${id}`,
   questionReplies: (id: string) => `${API_BASE_URL}/questions/${id}/replies`,
   questionStatus: (id: string) => `${API_BASE_URL}/questions/${id}/status`,
+  search: `${API_BASE_URL}/search`,
 };
