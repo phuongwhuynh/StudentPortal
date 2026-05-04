@@ -51,10 +51,10 @@ export default function Home() {
   ];
 
   const quickStats = [
-    { label: "Active Discussions", value: "156", icon: MessagesSquare, color: "text-blue-600" },
-    { label: "New Announcements", value: "12", icon: Bell, color: "text-green-600" },
-    { label: "Answered Questions", value: "2,340", icon: TrendingUp, color: "text-purple-600" },
-    { label: "Today's Posts", value: "48", icon: Clock, color: "text-orange-600" },
+    { label: "Today's Discussions", value: "156", icon: MessagesSquare, color: "text-blue-600" },
+    { label: "Today's Announcements", value: "12", icon: Bell, color: "text-green-600" },
+    { label: "Urgent Announcements", value: "2,340", icon: TrendingUp, color: "text-purple-600" },
+    { label: "Today's Questions", value: "48", icon: Clock, color: "text-orange-600" },
   ];
 
   return (

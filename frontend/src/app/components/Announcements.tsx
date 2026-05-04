@@ -38,6 +38,7 @@ export default function Announcements() {
   const [newBody, setNewBody] = useState("");
   const [newCategory, setNewCategory] = useState("Academic");
   const [newPriority, setNewPriority] = useState<"info" | "warning" | "success" | "urgent">("info");
+  const [newExpiresAt, setNewExpiresAt] = useState<string | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
 
   const [announcements, setAnnouncements] = useState<Array<{
@@ -50,6 +51,7 @@ export default function Announcements() {
     time: string;
     author: string;
     tags: string[];
+    expiresAt?: string | null;
   }>>([]);
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export default function Announcements() {
           time: formatDistanceToNowStrict(new Date(announcement.createdAt), { addSuffix: true }),
           author: announcement.postedBy.displayName,
           tags: announcement.tags,
+          expiresAt: (announcement as any).expiresAt ?? null,
         })),
       );
     });
@@ -110,10 +113,26 @@ export default function Announcements() {
     return matchesSearch && matchesCategory;
   }), [announcements, searchQuery, filterCategory]);
 
+  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("recent");
+
+  const relevanceScore = (item: any, q: string) => {
+    const hay = `${item.title} ${item.content}`.toLowerCase();
+    const occurrences = (hay.match(new RegExp(q, "gi")) || []).length;
+    return occurrences;
+  };
+
+  const sortedAnnouncements = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (sortMode === "trending") return [...filteredAnnouncements].sort((a, b) => b.type.localeCompare(a.type));
+    if (sortMode === "recent") return [...filteredAnnouncements].sort((a, b) => +new Date(b.date) - +new Date(a.date));
+    if (sortMode === "relevant" && q) return [...filteredAnnouncements].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
+    return filteredAnnouncements;
+  }, [filteredAnnouncements, sortMode, searchQuery]);
+
   const handleCreateAnnouncement = async () => {
     try {
       setCreateError(null);
-      const announcement = await createAnnouncement(newTitle, newBody, newCategory);
+      const announcement = await createAnnouncement(newTitle, newBody, newCategory, newExpiresAt);
       setAnnouncements((current) => [
         {
           id: announcement.id,
@@ -123,6 +142,7 @@ export default function Announcements() {
           type: newPriority,
           date: new Date(announcement.createdAt).toLocaleDateString(),
           time: formatDistanceToNowStrict(new Date(announcement.createdAt), { addSuffix: true }),
+          expiresAt: announcement.expiresAt ?? newExpiresAt,
           author: announcement.postedBy.displayName,
           tags: announcement.tags,
         },
@@ -178,7 +198,7 @@ export default function Announcements() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">This Week</p>
+                <p className="text-sm text-gray-600">Today</p>
                 <p className="text-2xl font-bold">5</p>
               </div>
               <Calendar className="w-8 h-8 text-green-600" />
@@ -198,7 +218,7 @@ export default function Announcements() {
         </Card>
       </div>
 
-      {/* Search and Filter */}
+      {/* Search, Filter and Sort */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -223,6 +243,17 @@ export default function Announcements() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="trending">Trending</SelectItem>
+            <SelectItem value="recent">Recent</SelectItem>
+            <SelectItem value="relevant" disabled={!searchQuery}>Relevant (search active)</SelectItem>
+          </SelectContent>
+        </Select>
         {user?.role === "staff" && (
           <Button onClick={() => setCreateOpen(true)}>
             <Bell className="w-4 h-4 mr-2" />
@@ -237,7 +268,7 @@ export default function Announcements() {
             <DialogTitle>New Announcement</DialogTitle>
             <DialogDescription>Create an official announcement for the university portal.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+            <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="ann-title">Title</Label>
               <Input id="ann-title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} placeholder="Announcement title" />
@@ -259,6 +290,10 @@ export default function Announcements() {
               </Select>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="ann-expires">Expires At</Label>
+              <Input id="ann-expires" type="date" value={newExpiresAt ?? ""} onChange={(e) => setNewExpiresAt(e.target.value || null)} />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="ann-body">Body</Label>
               <Textarea id="ann-body" value={newBody} onChange={(e) => setNewBody(e.target.value)} placeholder="Write announcement details..." rows={5} />
             </div>
@@ -273,7 +308,7 @@ export default function Announcements() {
 
       {/* Announcements List */}
       <div className="space-y-4">
-        {filteredAnnouncements.map((announcement) => {
+        {sortedAnnouncements.map((announcement) => {
           const { icon: Icon, color, bg } = getTypeIcon(announcement.type);
           
           return (
@@ -296,22 +331,19 @@ export default function Announcements() {
                       {announcement.content}
                     </p>
                     
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {announcement.tags.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
+                    {/* removed tags display — body is shown above */}
                     
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                       <Badge variant="secondary" className="text-xs">
                         {announcement.category}
                       </Badge>
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span className="text-xs">{announcement.date}</span>
-                      </div>
+                      {announcement.expiresAt && (
+                        <div className="flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span className="text-xs">Expires {new Date(announcement.expiresAt).toLocaleDateString()}</span>
+                        </div>
+                      )}
+                      
                       <span className="text-xs">{announcement.time}</span>
                       <span className="text-xs">by {announcement.author}</span>
                       <Button asChild variant="link" size="sm" className="ml-auto text-blue-600 p-0 h-auto">

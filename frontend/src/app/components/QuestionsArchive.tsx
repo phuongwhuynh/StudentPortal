@@ -13,8 +13,8 @@ import {
   ChevronUp,
   CheckCircle2
 } from "lucide-react";
-import { formatDistanceToNowStrict } from "date-fns";
 import { listQuestions } from "../api/services/questions.service";
+import { Loader2 } from "lucide-react";
 import { createQuestion } from "../api/services/questions.service";
 import { useAuth } from "../auth/AuthContext";
 import {
@@ -39,14 +39,14 @@ export default function QuestionsArchive() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
-  const [expandedQuestion, setExpandedQuestion] = useState<number | null>(null);
+  const [expandedQuestion, setExpandedQuestion] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
-  const [newCategory, setNewCategory] = useState("Academic");
+  const [newCategory, setNewCategory] = useState("General");
   const [createError, setCreateError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Array<{
-    id: number;
+    id: string;
     question: string;
     answer: string;
     category: string;
@@ -60,15 +60,49 @@ export default function QuestionsArchive() {
     tags: string[];
     isSolved: boolean;
     isPopular: boolean;
+    comments: any[];
+    status: string;
   }>>([]);
 
-  useEffect(() => {
-    let mounted = true;
-    listQuestions().then((items) => {
+  const forumCategories = ["Academic Support", "Campus Life", "Career Services", "IT & Technology", "Student Affairs", "General"];
+
+  const categories = ["all", ...forumCategories];
+
+  const filteredQuestions = useMemo(() => questions.filter(q => {
+    const sq = searchQuery.toLowerCase();
+    const matchesSearch = q.question.toLowerCase().includes(sq) ||
+                         q.answer.toLowerCase().includes(sq) ||
+                         q.tags.some(tag => tag.toLowerCase().includes(sq)) ||
+                         q.comments.some(c => c.body.toLowerCase().includes(sq));
+    const matchesCategory = filterCategory === "all" || q.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  }), [questions, searchQuery, filterCategory]);
+
+  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("recent");
+
+  const relevanceScore = (item: any, q: string) => {
+    const hay = `${item.question} ${item.answer}`.toLowerCase();
+    const occurrences = (hay.match(new RegExp(q, "gi")) || []).length;
+    return occurrences + (item.comments ? item.comments.length : 0);
+  };
+
+  const sortedFilteredQuestions = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (sortMode === "trending") return [...filteredQuestions].sort((a, b) => b.upvotes - a.upvotes);
+    if (sortMode === "recent") return [...filteredQuestions].sort((a, b) => new Date(b.dateAsked).getTime() - new Date(a.dateAsked).getTime());
+    if (sortMode === "relevant" && q) return [...filteredQuestions].sort((a, b) => {
+      return (relevanceScore(b, q) - relevanceScore(a, q));
+    });
+    return filteredQuestions;
+  }, [filteredQuestions, sortMode, searchQuery]);
+
+    const load = async (opts?: { q?: string; category?: string; sort?: "asc" | "desc" }) => {
+      let mounted = true;
+      const items = await listQuestions(opts);
       if (!mounted) return;
       setQuestions(
-        items.map((question, index) => ({
-          id: index + 1,
+        items.map((question) => ({
+          id: question.id,
           question: question.title,
           answer: question.body,
           category: question.category,
@@ -82,53 +116,35 @@ export default function QuestionsArchive() {
           tags: question.tags,
           isSolved: question.status === "completed",
           isPopular: question.counts.views > 1000,
+          comments: question.comments ?? [],
+          status: question.status,
         })),
       );
-    });
-    return () => {
-      mounted = false;
+      return () => {
+        mounted = false;
+      };
     };
-  }, []);
 
-  const categories = ["all", "IT Services", "Library", "Housing", "Career Services", "Academic", "Dining", "Student Services", "Transportation"];
+    useEffect(() => {
+      load({ q: searchQuery, category: filterCategory });
+    }, [searchQuery, filterCategory]);
 
-  const filteredQuestions = useMemo(() => questions.filter(q => {
-    const matchesSearch = q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         q.answer.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         q.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesCategory = filterCategory === "all" || q.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  }), [questions, searchQuery, filterCategory]);
-
-  const popularQuestions = questions.filter(q => q.isPopular);
+    useEffect(() => {
+      const handler = () => load({ q: searchQuery, category: filterCategory });
+      window.addEventListener("questions-updated", handler);
+      return () => window.removeEventListener("questions-updated", handler);
+    }, [searchQuery, filterCategory]);
 
   const handleCreateQuestion = async () => {
     try {
       setCreateError(null);
       const question = await createQuestion(newTitle, newBody, newCategory);
-      setQuestions((current) => [
-        {
-          id: current.length + 1,
-          question: question.title,
-          answer: question.body,
-          category: question.category,
-          askedBy: question.postedBy.displayName,
-          answeredBy: question.answeredBy?.displayName ?? "Staff",
-          upvotes: question.counts.likes,
-          views: question.counts.views,
-          replies: question.counts.comments,
-          dateAsked: new Date(question.createdAt).toLocaleDateString(),
-          dateAnswered: question.repliedAt ? new Date(question.repliedAt).toLocaleDateString() : "—",
-          tags: question.tags,
-          isSolved: question.status === "completed",
-          isPopular: false,
-        },
-        ...current,
-      ]);
+      // reload list to avoid duplicates (mock handler emits update event)
+      await load({ q: searchQuery, category: filterCategory });
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
-      setNewCategory("Academic");
+      setNewCategory("General");
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Unable to create question");
     }
@@ -174,7 +190,7 @@ export default function QuestionsArchive() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Views</p>
+                <p className="text-sm text-gray-600">Today</p>
                 <p className="text-2xl font-bold">
                   {(questions.reduce((sum, q) => sum + q.views, 0) / 1000).toFixed(1)}k
                 </p>
@@ -221,6 +237,17 @@ export default function QuestionsArchive() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="trending">Trending</SelectItem>
+            <SelectItem value="recent">Recent</SelectItem>
+            <SelectItem value="relevant" disabled={!searchQuery}>Relevant (search active)</SelectItem>
+          </SelectContent>
+        </Select>
         {user && (user.role === "student" || user.role === "staff") && (
           <Button onClick={() => setCreateOpen(true)}>
             <MessageSquare className="w-4 h-4 mr-2" />
@@ -242,7 +269,18 @@ export default function QuestionsArchive() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="q-category">Category</Label>
-              <Input id="q-category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Academic" />
+              <Select value={newCategory} onValueChange={setNewCategory}>
+                <SelectTrigger id="q-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {forumCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="q-body">Body</Label>
@@ -257,76 +295,29 @@ export default function QuestionsArchive() {
         </DialogContent>
       </Dialog>
 
-      {/* Popular Questions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ThumbsUp className="w-5 h-5" />
-            Most Popular Questions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {popularQuestions.slice(0, 3).map((q) => (
-              <button
-                key={q.id}
-                onClick={() => setExpandedQuestion(expandedQuestion === q.id ? null : q.id)}
-                className="w-full text-left p-4 rounded-lg border hover:border-blue-400 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-sm mb-2">{q.question}</h4>
-                    <div className="flex items-center gap-3 text-xs text-gray-600">
-                      <span className="flex items-center gap-1">
-                        <ThumbsUp className="w-3 h-3" />
-                        {q.upvotes}
-                      </span>
-                      <span>{q.views} views</span>
-                      <Badge variant="secondary" className="text-xs">{q.category}</Badge>
-                    </div>
-                  </div>
-                  {expandedQuestion === q.id ? (
-                    <ChevronUp className="w-5 h-5 text-gray-400 shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-gray-400 shrink-0" />
-                  )}
-                </div>
-                {expandedQuestion === q.id && (
-                  <div className="mt-4 pt-4 border-t">
-                    <p className="text-sm text-gray-700">{q.answer}</p>
-                  </div>
-                )}
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Questions List */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">All Questions ({filteredQuestions.length})</h2>
+        <h2 className="text-xl font-semibold mb-4">All Questions ({sortedFilteredQuestions.length})</h2>
         <Accordion type="single" collapsible className="space-y-3">
-          {filteredQuestions.map((q) => (
+          {sortedFilteredQuestions.map((q) => (
             <AccordionItem key={q.id} value={`item-${q.id}`} className="border rounded-lg">
               <Card className="border-0">
                 <AccordionTrigger className="hover:no-underline px-6">
                   <div className="flex items-start gap-4 text-left flex-1 pr-4">
                     <div className="hidden sm:flex flex-col items-center gap-1 pt-1">
-                      <div className="p-2 bg-green-50 rounded-lg">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                      </div>
+                      <div className={"p-2 rounded-lg " + (q.isSolved ? "bg-green-50" : "bg-orange-50")}>
+                          {q.isSolved ? (
+                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          ) : (
+                            <Loader2 className="w-5 h-5 text-orange-600" />
+                          )}
+                        </div>
                     </div>
                     
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-base mb-2">{q.question}</h3>
                       
-                      <div className="flex flex-wrap gap-1.5 mb-3">
-                        {q.tags.map((tag) => (
-                          <Badge key={tag} variant="outline" className="text-xs">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
+                      <p className="text-sm text-gray-700 mb-3 line-clamp-2">{q.answer}</p>
 
                       <div className="flex flex-wrap items-center gap-3 text-xs text-gray-600">
                         <Badge variant="secondary" className="text-xs">
@@ -353,8 +344,17 @@ export default function QuestionsArchive() {
                       <div className="flex items-start gap-2 mb-2">
                         <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
                         <div>
-                          <p className="font-medium text-sm text-green-900 mb-1">Accepted Answer</p>
-                          <p className="text-sm text-gray-700">{q.answer}</p>
+                          {q.isSolved ? (
+                            <>
+                              <p className="font-medium text-sm text-green-900 mb-1">Resolved Answer</p>
+                              <p className="text-sm text-gray-700">{(q.comments && q.comments.length > 0) ? [...q.comments].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime())[0].body : q.answer}</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="font-medium text-sm text-green-900 mb-1">Latest Reply</p>
+                              <p className="text-sm text-gray-700">{(q.comments && q.comments.length > 0) ? [...q.comments].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime())[0].body : <span className="italic text-slate-500">No replies yet</span>}</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -388,8 +388,8 @@ export default function QuestionsArchive() {
           <HelpCircle className="w-12 h-12 text-blue-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold mb-2">Didn't find what you're looking for?</h3>
           <p className="text-gray-600 mb-4">Ask a new question in the forums and get help from the community</p>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <MessageSquare className="w-4 h-4 mr-2" />
+          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setCreateOpen(true)}>
+            <MessageSquare className="w-4 h-4 mr-2"  />
             Ask a Question
           </Button>
         </CardContent>

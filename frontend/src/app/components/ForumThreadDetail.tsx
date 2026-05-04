@@ -2,49 +2,57 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ArrowLeft, Eye, Heart, MessageCircle, Send, User, Trash2 } from "lucide-react";
-import { getForumById } from "../api/services/forums.service";
+import { addForumComment, getForumById, isForumLikedByUser, toggleForumLike } from "../api/services/forums.service";
 import { useAuth } from "../auth/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
 import { Input } from "./ui/input";
-import type { Comment, ForumThread } from "../types/content";
+import type { ForumThread } from "../types/content";
 
 export default function ForumThreadDetail() {
   const { id } = useParams();
   const { user } = useAuth();
   const [thread, setThread] = useState<ForumThread | null>(null);
   const [commentBody, setCommentBody] = useState("");
+  const [liked, setLiked] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     getForumById(id).then((item) => setThread(item ?? null));
   }, [id]);
 
+  useEffect(() => {
+    if (!id || !user) {
+      setLiked(false);
+      return;
+    }
+    isForumLikedByUser(id, user.id).then(setLiked);
+  }, [id, user]);
+
   const comments = useMemo(
     () => [...(thread?.comments ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [thread],
   );
 
-  const addComment = () => {
+  const addComment = async () => {
     if (!thread || !commentBody.trim() || !user) return;
-    const next: Comment = {
-      id: `comment-${Date.now()}`,
-      contentType: "forum",
-      contentId: thread.id,
-      parentCommentId: null,
-      body: commentBody,
-      postedBy: { id: user.id, displayName: user.displayName, role: user.role },
-      createdAt: new Date().toISOString(),
-      likes: 0,
-    };
-    setThread({
-      ...thread,
-      counts: { ...thread.counts, comments: thread.counts.comments + 1 },
-      repliedAt: new Date().toISOString(),
-      comments: [...thread.comments, next],
-    });
-    setCommentBody("");
+    try {
+      setCommentError(null);
+      const updated = await addForumComment(thread.id, commentBody.trim(), user);
+      setThread({ ...updated });
+      setCommentBody("");
+    } catch (error) {
+      setCommentError(error instanceof Error ? error.message : "Unable to post comment");
+    }
+  };
+
+  const toggleLike = async () => {
+    if (!thread || !user || user.role === "guest") return;
+    const updated = await toggleForumLike(thread.id, user);
+    setThread({ ...updated });
+    setLiked((current) => !current);
   };
 
   if (!thread) {
@@ -81,7 +89,6 @@ export default function ForumThreadDetail() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  {thread.isPinned && <Badge>📌 Pinned</Badge>}
                   <Badge variant="secondary">Forum</Badge>
                 </div>
                 <h1 className="text-3xl font-bold leading-tight">{thread.title}</h1>
@@ -96,6 +103,13 @@ export default function ForumThreadDetail() {
               <span className="flex items-center gap-1.5"><Heart className="w-4 h-4" />{thread.counts.likes} likes</span>
               <span className="flex items-center gap-1.5"><MessageCircle className="w-4 h-4" />{thread.counts.comments} comments</span>
             </div>
+
+            {user && user.role !== "guest" && (
+              <Button variant={liked ? "default" : "outline"} onClick={toggleLike} className="w-fit">
+                <Heart className="w-4 h-4 mr-2" />
+                {liked ? "Unlike" : "Like"}
+              </Button>
+            )}
 
             <p className="text-gray-700 leading-7 whitespace-pre-wrap">{thread.body}</p>
           </div>
@@ -113,6 +127,7 @@ export default function ForumThreadDetail() {
           ) : (
             <p className="text-sm text-gray-500">Log in or continue as student/staff to comment.</p>
           )}
+          {commentError && <p className="text-sm text-red-600">{commentError}</p>}
 
           <div className="space-y-3">
             {comments.map((comment) => (

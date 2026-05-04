@@ -13,15 +13,17 @@ import {
   Search,
   MessageCircle,
   Eye,
-  ThumbsUp 
+  ThumbsUp,
+  Filter,
 } from "lucide-react";
-import { listForums } from "../api/services/forums.service";
+import { isForumLikedByUser, listForums, toggleForumLike } from "../api/services/forums.service";
 import { createForum } from "../api/services/forums.service";
 import { formatDistanceToNowStrict } from "date-fns";
 import { useAuth } from "../auth/AuthContext";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 
 type ForumCardItem = {
   id: string;
@@ -33,8 +35,7 @@ type ForumCardItem = {
   likes: number;
   lastActive: string;
   createdAt: string;
-  tags: string[];
-  isPinned: boolean;
+  body: string;
 };
 
 export default function Forums() {
@@ -46,6 +47,9 @@ export default function Forums() {
   const [newBody, setNewBody] = useState("");
   const [newCategory, setNewCategory] = useState("General");
   const [createError, setCreateError] = useState<string | null>(null);
+  const [likedThreads, setLikedThreads] = useState<Record<string, boolean>>({});
+
+  const forumCategoryOptions = ["Academic Support", "Campus Life", "Career Services", "IT & Technology", "Student Affairs", "General"];
 
   useEffect(() => {
     let mounted = true;
@@ -62,8 +66,7 @@ export default function Forums() {
           likes: thread.counts.likes,
           lastActive: formatDistanceToNowStrict(new Date(thread.repliedAt ?? thread.createdAt), { addSuffix: true }),
           createdAt: thread.createdAt,
-          tags: thread.tags,
-          isPinned: thread.isPinned,
+          body: thread.body,
         })),
       );
     });
@@ -71,6 +74,26 @@ export default function Forums() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setLikedThreads({});
+      return;
+    }
+
+    Promise.all(
+      forumThreads.map(async (thread) => ({
+        id: thread.id,
+        liked: await isForumLikedByUser(thread.id, user.id),
+      })),
+    ).then((results) => {
+      const next: Record<string, boolean> = {};
+      results.forEach((item) => {
+        next[item.id] = item.liked;
+      });
+      setLikedThreads(next);
+    });
+  }, [forumThreads, user]);
 
   const categories = [
     { name: "Academic Support", count: 234, color: "bg-blue-100 text-blue-700" },
@@ -84,35 +107,50 @@ export default function Forums() {
   const filteredThreads = useMemo(
     () =>
       forumThreads.filter((thread) => {
-        const haystack = `${thread.title} ${thread.author} ${thread.category} ${thread.tags.join(" ")}`.toLowerCase();
+        const haystack = `${thread.title} ${thread.author} ${thread.category} ${thread.body}`.toLowerCase();
         return haystack.includes(searchQuery.toLowerCase());
       }),
     [forumThreads, searchQuery],
   );
 
-  const trendingThreads = filteredThreads.slice(0, 3);
-  const recentThreads = [...filteredThreads].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("trending");
+
+  const relevanceScore = (thread: ForumCardItem, q: string) => {
+    const hay = `${thread.title} ${thread.body}`.toLowerCase();
+    return (hay.match(new RegExp(q, "gi")) || []).length;
+  };
+
+  const trendingThreads = useMemo(() => [...filteredThreads].sort((a, b) => b.likes - a.likes).slice(0, 3), [filteredThreads]);
+  const recentThreads = useMemo(() => [...filteredThreads].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)), [filteredThreads]);
+  const relevantThreads = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return filteredThreads;
+    return [...filteredThreads].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
+  }, [filteredThreads, searchQuery]);
 
   const handleCreateForum = async () => {
     try {
       setCreateError(null);
       const thread = await createForum(newTitle, newBody, newCategory);
-      setForumThreads((current) => [
-        {
-          id: thread.id,
-          title: thread.title,
-          author: thread.postedBy.displayName,
-          category: thread.category,
-          replies: thread.counts.comments,
-          views: thread.counts.views,
-          likes: thread.counts.likes,
-          lastActive: formatDistanceToNowStrict(new Date(thread.createdAt), { addSuffix: true }),
-          createdAt: thread.createdAt,
-          tags: thread.tags,
-          isPinned: thread.isPinned,
-        },
-        ...current,
-      ]);
+      // reload list instead of inserting locally to avoid duplicates
+      let mounted = true;
+      const items = await listForums();
+      if (mounted) {
+        setForumThreads(
+          items.map((thread) => ({
+            id: thread.id,
+            title: thread.title,
+            author: thread.postedBy.displayName,
+            category: thread.category,
+            replies: thread.counts.comments,
+            views: thread.counts.views,
+            likes: thread.counts.likes,
+            lastActive: formatDistanceToNowStrict(new Date(thread.repliedAt ?? thread.createdAt), { addSuffix: true }),
+            createdAt: thread.createdAt,
+            body: thread.body,
+          })),
+        );
+      }
       setCreateOpen(false);
       setNewTitle("");
       setNewBody("");
@@ -120,6 +158,26 @@ export default function Forums() {
     } catch (error) {
       setCreateError(error instanceof Error ? error.message : "Unable to create forum thread");
     }
+  };
+
+  const handleToggleLike = async (threadId: string) => {
+    if (!user || user.role === "guest") return;
+    const updated = await toggleForumLike(threadId, user);
+
+    setForumThreads((current) =>
+      current.map((thread) =>
+        thread.id === updated.id
+          ? {
+              ...thread,
+              likes: updated.counts.likes,
+              replies: updated.counts.comments,
+              lastActive: formatDistanceToNowStrict(new Date(updated.repliedAt ?? updated.createdAt), { addSuffix: true }),
+            }
+          : thread,
+      ),
+    );
+
+    setLikedThreads((current) => ({ ...current, [threadId]: !current[threadId] }));
   };
 
   const ThreadList = ({ threads }: { threads: ForumCardItem[] }) => (
@@ -136,22 +194,10 @@ export default function Forums() {
               </div>
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-start gap-2 mb-2">
-                  {thread.isPinned && (
-                    <Badge variant="secondary" className="text-xs">📌 Pinned</Badge>
-                  )}
-                  <h3 className="font-semibold text-base line-clamp-2 flex-1">
-                    {thread.title}
-                  </h3>
-                </div>
-                
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {thread.tags.map((tag) => (
-                    <Badge key={tag} variant="outline" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
+                      <div className="mb-2">
+                        <h3 className="font-semibold text-base line-clamp-2">{thread.title}</h3>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-3 line-clamp-2">{thread.body}</p>
 
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1.5">
@@ -179,9 +225,24 @@ export default function Forums() {
                   </div>
                 </div>
 
-                <Button asChild variant="link" className="p-0 h-auto mt-3">
-                  <Link to={`/forums/${thread.id}`}>View full thread →</Link>
-                </Button>
+                <div className="flex items-center gap-2 mt-3">
+                  {user && user.role !== "guest" && (
+                    <button
+                      onClick={() => handleToggleLike(thread.id)}
+                      aria-pressed={likedThreads[thread.id]}
+                      className={
+                        "p-2 rounded transition-colors " + (likedThreads[thread.id] ? "bg-white text-black" : "bg-black text-white")
+                      }
+                      title={likedThreads[thread.id] ? "Unlike" : "Like"}
+                    >
+                      <ThumbsUp className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  <Button asChild variant="link" className="p-0 h-auto">
+                    <Link to={`/forums/${thread.id}`}>View full thread →</Link>
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -212,6 +273,18 @@ export default function Forums() {
             className="pl-10"
           />
         </div>
+        <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>
+          <SelectTrigger className="w-full sm:w-[160px]">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="trending">Trending</SelectItem>
+            <SelectItem value="recent">Recent</SelectItem>
+            <SelectItem value="relevant" disabled={!searchQuery}>Relevant (search active)</SelectItem>
+          </SelectContent>
+        </Select>
+
         {!isGuest && user && (user.role === "student" || user.role === "staff") && (
           <Button className="sm:w-auto" onClick={() => setCreateOpen(true)}>
             <MessagesSquare className="w-4 h-4 mr-2" />
@@ -233,7 +306,18 @@ export default function Forums() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="forum-category">Category</Label>
-              <Input id="forum-category" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="General" />
+              <Select value={newCategory} onValueChange={setNewCategory}>
+                <SelectTrigger id="forum-category">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {forumCategoryOptions.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="forum-body">Body</Label>
@@ -288,7 +372,7 @@ export default function Forums() {
         </TabsList>
         
         <TabsContent value="all" className="mt-6">
-          <ThreadList threads={filteredThreads} />
+          <ThreadList threads={sortMode === "relevant" && searchQuery ? relevantThreads : filteredThreads} />
         </TabsContent>
         
         <TabsContent value="trending" className="mt-6">
