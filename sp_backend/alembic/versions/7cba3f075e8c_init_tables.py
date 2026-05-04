@@ -167,35 +167,35 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_table(
-        "content_views",
-        sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
-        sa.Column(
-            "content_type",
-            sa.Enum("FORUM", "QUESTION", "ANNOUNCEMENT", name="contenttype"),
-            nullable=False,
-        ),
-        sa.Column("content_id", sa.Integer(), nullable=False),
-        sa.Column("user_id", sa.Integer(), nullable=False),
-        sa.Column(
-            "timestamp",
-            sa.DateTime(timezone=True),
-            server_default=sa.text("now()"),
-            nullable=False,
-        ),
-        sa.ForeignKeyConstraint(
-            ["user_id"],
-            ["users.id"],
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index(
-        "ix_content_views_user_timestamp",
-        "content_views",
-        ["user_id", sa.literal_column("timestamp DESC")],
-        unique=False,
-        postgresql_include=["content_id", "content_type"],
-    )
+    # op.create_table(
+    #     "content_views",
+    #     sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
+    #     sa.Column(
+    #         "content_type",
+    #         sa.Enum("FORUM", "QUESTION", "ANNOUNCEMENT", name="contenttype"),
+    #         nullable=False,
+    #     ),
+    #     sa.Column("content_id", sa.Integer(), nullable=False),
+    #     sa.Column("user_id", sa.Integer(), nullable=False),
+    #     sa.Column(
+    #         "timestamp",
+    #         sa.DateTime(timezone=True),
+    #         server_default=sa.text("now()"),
+    #         nullable=False,
+    #     ),
+    #     sa.ForeignKeyConstraint(
+    #         ["user_id"],
+    #         ["users.id"],
+    #     ),
+    #     sa.PrimaryKeyConstraint("id"),
+    # )
+    # op.create_index(
+    #     "ix_content_views_user_timestamp",
+    #     "content_views",
+    #     ["user_id", sa.literal_column("timestamp DESC")],
+    #     unique=False,
+    #     postgresql_include=["content_id", "content_type"],
+    # )
     op.create_table(
         "forums",
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
@@ -405,12 +405,12 @@ def downgrade() -> None:
         postgresql_ops={"embedding": "vector_cosine_ops"},
     )
     op.drop_table("forums")
-    op.drop_index(
-        "ix_content_views_user_timestamp",
-        table_name="content_views",
-        postgresql_include=["content_id", "content_type"],
-    )
-    op.drop_table("content_views")
+    # op.drop_index(
+    #     "ix_content_views_user_timestamp",
+    #     table_name="content_views",
+    #     postgresql_include=["content_id", "content_type"],
+    # )
+    # op.drop_table("content_views")
     op.drop_table("comments")
     op.drop_index(op.f("ix_announcements_updated_at"), table_name="announcements")
     op.drop_index(op.f("ix_announcements_priority"), table_name="announcements")
