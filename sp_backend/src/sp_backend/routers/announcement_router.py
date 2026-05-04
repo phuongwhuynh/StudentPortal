@@ -11,7 +11,7 @@ from sp_backend.services.announcement.create_announcement_service import (
     CreateAnnouncementService,
 )
 
-router = APIRouter(tags=["Announcement"], prefix="/announcements")
+router = APIRouter(tags=["Announcement"], prefix="/announcement")
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_class=JSONResponse)

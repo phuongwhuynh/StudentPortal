@@ -1,5 +1,4 @@
 from sp_backend.models.forum import Forum
-from sp_backend.models.user import User
 from sp_backend.models.content_daily_view import ContentDailyView
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, Query, joinedload

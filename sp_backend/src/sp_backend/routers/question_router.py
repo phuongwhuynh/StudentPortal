@@ -8,8 +8,7 @@ from sp_backend.schemas.question.create_question_schema import (
 )
 from sp_backend.services.question.create_question_service import CreateQuestionService
 
-
-router = APIRouter(tags=["Question"], prefix="/questions")
+router = APIRouter(tags=["Question"], prefix="/question")
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_class=JSONResponse)

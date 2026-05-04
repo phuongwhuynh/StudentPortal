@@ -12,10 +12,11 @@ from sp_backend.schemas.forum.get_forum_schema import (
 from sp_backend.dependencies.auth import get_current_user
 from sp_backend.services.forum.create_forum_service import CreateForumService
 from sp_backend.services.forum.list_forum_service import ListForumService
+from sp_backend.services.forum.get_forum_service import GetForumService
 from sp_backend.constants.forum import SortOptions, ForumCategory
 from typing import Optional
 
-router = APIRouter(tags=["Forum"], prefix="/forums")
+router = APIRouter(tags=["Forum"], prefix="/forum")
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_class=JSONResponse)
@@ -65,4 +66,9 @@ async def get_forum_details(
     request: Request,
     forum_id: int,
 ) -> GetForumResponse:
-    pass
+    service = GetForumService(
+        db_session=request.state.db,
+        forum_id=forum_id,
+    )
+    forum_response: GetForumResponse = service.invoke()
+    return forum_response
