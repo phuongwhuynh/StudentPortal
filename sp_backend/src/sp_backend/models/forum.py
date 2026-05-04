@@ -26,8 +26,8 @@ class Forum(Base):
     __tablename__ = "forums"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String(300), nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str] = mapped_column(String(300), nullable=False, index=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     embedding: Mapped[list[float]] = mapped_column(
         Vector(EMBEDDING_DIM),
         nullable=False,

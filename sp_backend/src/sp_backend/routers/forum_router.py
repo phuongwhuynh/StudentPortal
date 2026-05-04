@@ -8,6 +8,7 @@ from sp_backend.schemas.forum.create_forum_schema import (
 from sp_backend.schemas.forum.forum_list_schema import ForumListResponse
 from sp_backend.dependencies.auth import get_current_user
 from sp_backend.services.forum.create_forum_service import CreateForumService
+from sp_backend.services.forum.list_forum_service import ListForumService
 from sp_backend.constants.forum import SortOptions, ForumCategory
 from typing import Optional
 
@@ -32,14 +33,25 @@ async def create_forum(
 @router.get("/", status_code=status.HTTP_200_OK, response_class=JSONResponse)
 async def list_forums(
     request: Request,
-    sort_by: Optional[SortOptions] = Query(
+    sort_by: SortOptions = Query(
         SortOptions.RECENT, description="Sort forums by this criteria"
     ),
     category: Optional[ForumCategory] = Query(
         None, description="Filter forums by this category"
     ),
-    limit: Optional[int] = Query(10, description="Number of forums to return"),
-    offset: Optional[int] = Query(0, description="Offset for pagination"),
-    search: Optional[str] = Query(None, description="Search forums by title or body"),
+    search: Optional[str] = Query(
+        None, min_length=2, max_length=200, description="Search forums by title or body"
+    ),
+    limit: int = Query(10, ge=1, le=100, description="Number of forums to return"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
 ) -> ForumListResponse:
-    pass
+    service = ListForumService(
+        db_session=request.state.db,
+        sort_by=sort_by,
+        category=category,
+        search=search,
+        limit=limit,
+        offset=offset,
+    )
+    forum_list_response: ForumListResponse = service.invoke()
+    return forum_list_response

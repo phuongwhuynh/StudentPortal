@@ -59,20 +59,95 @@ def seed_forums():
     forums_data = [
         {
             "title": "Welcome to Academic Support!",
-            "body": "This forum is for all academic-related questions and discussions.",
+            "body": (
+                "This forum is for all academic-related questions and discussions. "
+                "Feel free to ask about course registration, exam schedules, or study tips. "
+                "Our staff and fellow students are here to help you succeed throughout the semester."
+            ),
             "category": ForumCategory.ACADEMIC_SUPPORT,
             "posted_by": staff.id if staff else 1,
         },
         {
             "title": "Campus Life Tips",
-            "body": "Share your experiences and tips about campus life!",
+            "body": (
+                "Share your experiences and tips about campus life! "
+                "From the best places to eat to how to join clubs and societies, "
+                "let's help each other make the most out of university life."
+            ),
             "category": ForumCategory.CAMPUS_LIFE,
             "posted_by": student.id if student else 2,
         },
         {
             "title": "Career Services Announcements",
-            "body": "Find the latest updates and advice from Career Services.",
+            "body": (
+                "Find the latest updates and advice from Career Services. "
+                "We post about upcoming workshops, internship opportunities, and career fairs. "
+                "Stay tuned for resources to boost your employability."
+            ),
             "category": ForumCategory.CAREER_SERVICES,
+            "posted_by": staff.id if staff else 1,
+        },
+        {
+            "title": "Study Group Finder",
+            "body": (
+                "Looking for a study group? Post your course and preferred study times here. "
+                "Collaborative learning can help you grasp difficult concepts and stay motivated."
+            ),
+            "category": ForumCategory.ACADEMIC_SUPPORT,
+            "posted_by": student.id if student else 2,
+        },
+        {
+            "title": "Dormitory Life Q&A",
+            "body": (
+                "Ask questions and share advice about living in the dorms. "
+                "From roommate tips to laundry hacks, this is your space to discuss all things residential."
+            ),
+            "category": ForumCategory.CAMPUS_LIFE,
+            "posted_by": student.id if student else 2,
+        },
+        {
+            "title": "Exam Preparation Strategies",
+            "body": (
+                "Discuss your favorite exam prep strategies, share resources, and motivate each other. "
+                "Whether you prefer flashcards, group study, or solo revision, all tips are welcome!"
+            ),
+            "category": ForumCategory.ACADEMIC_SUPPORT,
+            "posted_by": staff.id if staff else 1,
+        },
+        {
+            "title": "Lost and Found",
+            "body": (
+                "Lost something on campus? Found an item that doesn't belong to you? "
+                "Post details here to help reunite items with their owners."
+            ),
+            "category": ForumCategory.CAMPUS_LIFE,
+            "posted_by": student.id if student else 2,
+        },
+        {
+            "title": "Internship Experiences",
+            "body": (
+                "Share your internship stories, tips for applications, and advice for making the most of your placement. "
+                "Let's help each other prepare for the professional world."
+            ),
+            "category": ForumCategory.CAREER_SERVICES,
+            "posted_by": staff.id if staff else 1,
+        },
+        {
+            "title": "Club and Society Promotions",
+            "body": (
+                "Are you part of a club or society? Promote your events and recruit new members here. "
+                "Let’s build a vibrant campus community together!"
+            ),
+            "category": ForumCategory.CAMPUS_LIFE,
+            "posted_by": student.id if student else 2,
+        },
+        {
+            "title": "Mental Health Support",
+            "body": (
+                "University life can be stressful. Use this forum to share mental health resources, "
+                "coping strategies, and support each other through tough times."
+            ),
+            "category": ForumCategory.CAMPUS_LIFE,
             "posted_by": staff.id if staff else 1,
         },
     ]
@@ -89,39 +164,6 @@ def seed_forums():
             )
         )
     session.add_all(forums)
-    session.flush()
-
-
-def seed_comments():
-
-    # Get users and content ids
-    staff = session.query(User).filter_by(role=UserRole.STAFF).first()
-    student = session.query(User).filter_by(role=UserRole.STUDENT).first()
-
-    forum = session.query(Forum).first()
-    question = session.query(Question).first()
-    announcement = session.query(Announcement).first()
-    comments = [
-        Comment(
-            content_type=ContentType.FORUM,
-            content_id=forum.id if forum else 1,
-            body="This is a helpful forum!",
-            posted_by=student.id if student else 3,
-        ),
-        Comment(
-            content_type=ContentType.QUESTION,
-            content_id=question.id if question else 1,
-            body="I have the same question!",
-            posted_by=staff.id if staff else 1,
-        ),
-        Comment(
-            content_type=ContentType.ANNOUNCEMENT,
-            content_id=announcement.id if announcement else 1,
-            body="Thanks for the update!",
-            posted_by=student.id if student else 3,
-        ),
-    ]
-    session.add_all(comments)
     session.flush()
 
 
@@ -150,39 +192,6 @@ def seed_reactions():
         ),
     ]
     session.add_all(reactions)
-    session.flush()
-
-
-def seed_content_daily_views():
-    """Seed ContentDailyView for forums, questions, announcements."""
-    from sp_backend.models.content_daily_view import ContentDailyView
-    from datetime import date
-
-    forum = session.query(Forum).first()
-    question = session.query(Question).first()
-    announcement = session.query(Announcement).first()
-    today = date.today()
-    views = [
-        ContentDailyView(
-            content_type=ContentType.FORUM,
-            content_id=forum.id if forum else 1,
-            content_date=today,
-            views_count=10,
-        ),
-        ContentDailyView(
-            content_type=ContentType.QUESTION,
-            content_id=question.id if question else 1,
-            content_date=today,
-            views_count=5,
-        ),
-        ContentDailyView(
-            content_type=ContentType.ANNOUNCEMENT,
-            content_id=announcement.id if announcement else 1,
-            content_date=today,
-            views_count=7,
-        ),
-    ]
-    session.add_all(views)
     session.flush()
 
 
@@ -230,31 +239,46 @@ def seed_questions():
     session.flush()
 
 
-def seed_reactions():
-    """Seed reactions as 'likes' for posts (forums, questions, announcements)."""
+def seed_announcements():
     staff = session.query(User).filter_by(role=UserRole.STAFF).first()
-    student = session.query(User).filter_by(role=UserRole.STUDENT).first()
-    forum = session.query(Forum).first()
-    question = session.query(Question).first()
-    announcement = session.query(Announcement).first()
-    reactions = [
-        Reaction(
-            content_type=ContentType.FORUM,
-            content_id=forum.id if forum else 1,
-            user_id=student.id if student else 3,
-        ),
-        Reaction(
-            content_type=ContentType.QUESTION,
-            content_id=question.id if question else 1,
-            user_id=staff.id if staff else 1,
-        ),
-        Reaction(
-            content_type=ContentType.ANNOUNCEMENT,
-            content_id=announcement.id if announcement else 1,
-            user_id=student.id if student else 3,
-        ),
+
+    announcements_data = [
+        {
+            "title": "Semester Start Announcement",
+            "body": "Welcome to the new semester! Please check your schedules and course registrations.",
+            "category": AnnouncementCategory.ACADEMIC,
+            "priority": AnnouncementPriority.INFO,
+            "posted_by": staff.id if staff else 1,
+        },
+        {
+            "title": "Library Maintenance",
+            "body": "The library will be closed for maintenance this weekend.",
+            "category": AnnouncementCategory.LIBRARY,
+            "priority": AnnouncementPriority.WARNING,
+            "posted_by": staff.id if staff else 1,
+        },
+        {
+            "title": "Career Fair 2026",
+            "body": "Join the annual Career Fair to meet top employers and explore job opportunities!",
+            "category": AnnouncementCategory.CAREER_SERVICES,
+            "priority": AnnouncementPriority.NEW,
+            "posted_by": staff.id if staff else 1,
+        },
     ]
-    session.add_all(reactions)
+    announcements = []
+    for data in announcements_data:
+        embedding = EmbeddingService.get_embedding(data["title"] + " " + data["body"])
+        announcements.append(
+            Announcement(
+                title=data["title"],
+                body=data["body"],
+                embedding=embedding,
+                category=data["category"],
+                priority=data["priority"],
+                posted_by=data["posted_by"],
+            )
+        )
+    session.add_all(announcements)
     session.flush()
 
 
@@ -300,46 +324,64 @@ def seed_content_daily_views():
     session.flush()
 
 
-def seed_announcements():
+def seed_reactions():
+    """Seed reactions as 'likes' for posts (forums, questions, announcements)."""
     staff = session.query(User).filter_by(role=UserRole.STAFF).first()
-
-    announcements_data = [
-        {
-            "title": "Semester Start Announcement",
-            "body": "Welcome to the new semester! Please check your schedules and course registrations.",
-            "category": AnnouncementCategory.ACADEMIC,
-            "priority": AnnouncementPriority.INFO,
-            "posted_by": staff.id if staff else 1,
-        },
-        {
-            "title": "Library Maintenance",
-            "body": "The library will be closed for maintenance this weekend.",
-            "category": AnnouncementCategory.LIBRARY,
-            "priority": AnnouncementPriority.WARNING,
-            "posted_by": staff.id if staff else 1,
-        },
-        {
-            "title": "Career Fair 2026",
-            "body": "Join the annual Career Fair to meet top employers and explore job opportunities!",
-            "category": AnnouncementCategory.CAREER_SERVICES,
-            "priority": AnnouncementPriority.NEW,
-            "posted_by": staff.id if staff else 1,
-        },
+    student = session.query(User).filter_by(role=UserRole.STUDENT).first()
+    forum = session.query(Forum).first()
+    question = session.query(Question).first()
+    announcement = session.query(Announcement).first()
+    reactions = [
+        Reaction(
+            content_type=ContentType.FORUM,
+            content_id=forum.id if forum else 1,
+            user_id=student.id if student else 3,
+        ),
+        Reaction(
+            content_type=ContentType.QUESTION,
+            content_id=question.id if question else 1,
+            user_id=staff.id if staff else 1,
+        ),
+        Reaction(
+            content_type=ContentType.ANNOUNCEMENT,
+            content_id=announcement.id if announcement else 1,
+            user_id=student.id if student else 3,
+        ),
     ]
-    announcements = []
-    for data in announcements_data:
-        embedding = EmbeddingService.get_embedding(data["title"] + " " + data["body"])
-        announcements.append(
-            Announcement(
-                title=data["title"],
-                body=data["body"],
-                embedding=embedding,
-                category=data["category"],
-                priority=data["priority"],
-                posted_by=data["posted_by"],
-            )
-        )
-    session.add_all(announcements)
+    session.add_all(reactions)
+    session.flush()
+
+
+def seed_comments():
+
+    # Get users and content ids
+    staff = session.query(User).filter_by(role=UserRole.STAFF).first()
+    student = session.query(User).filter_by(role=UserRole.STUDENT).first()
+
+    forum = session.query(Forum).first()
+    question = session.query(Question).first()
+    announcement = session.query(Announcement).first()
+    comments = [
+        Comment(
+            content_type=ContentType.FORUM,
+            content_id=forum.id if forum else 1,
+            body="This is a helpful forum!",
+            posted_by=student.id if student else 3,
+        ),
+        Comment(
+            content_type=ContentType.QUESTION,
+            content_id=question.id if question else 1,
+            body="I have the same question!",
+            posted_by=staff.id if staff else 1,
+        ),
+        Comment(
+            content_type=ContentType.ANNOUNCEMENT,
+            content_id=announcement.id if announcement else 1,
+            body="Thanks for the update!",
+            posted_by=student.id if student else 3,
+        ),
+    ]
+    session.add_all(comments)
     session.flush()
 
 
