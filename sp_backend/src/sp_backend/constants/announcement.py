@@ -14,5 +14,10 @@ class AnnouncementCategory(str, Enum):
 class AnnouncementPriority(str, Enum):
     INFO = "Info"
     WARNING = "Warning"
-    NEW = "New"
     URGENT = "Urgent"
+
+
+class SortOptions(str, Enum):
+    TRENDING = "trending"
+    RECENT = "recent"
+    RELEVANT = "relevant"

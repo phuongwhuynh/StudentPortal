@@ -16,3 +16,9 @@ class QuestionStatus(str, Enum):
     OPEN = "Open"
     COMPLETED = "Completed"
     CANCELED = "Canceled"
+
+
+class SortOptions(str, Enum):
+    TRENDING = "trending"
+    RECENT = "recent"
+    RELEVANT = "relevant"

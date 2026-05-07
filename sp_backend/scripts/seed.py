@@ -264,7 +264,7 @@ def seed_announcements():
             "title": "Career Fair 2026",
             "body": "Join the annual Career Fair to meet top employers and explore job opportunities!",
             "category": AnnouncementCategory.CAREER_SERVICES,
-            "priority": AnnouncementPriority.NEW,
+            "priority": AnnouncementPriority.URGENT,
             "posted_by": staff.id if staff else 1,
             "expired_at": expired_date,
         },

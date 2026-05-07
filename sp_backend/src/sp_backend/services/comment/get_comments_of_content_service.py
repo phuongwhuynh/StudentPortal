@@ -68,7 +68,9 @@ class GetCommentsOfContentService:
                     id=comment.id,
                     comment=comment.body,
                     commenter=CommenterInfo(
-                        id=comment.poster.id, name=comment.poster.full_name
+                        id=comment.poster.id,
+                        full_name=comment.poster.full_name,
+                        role=comment.poster.role,
                     ),
                     content_id=comment.content_id,
                     content_type=comment.content_type,

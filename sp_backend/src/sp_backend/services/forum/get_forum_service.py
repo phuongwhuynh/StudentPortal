@@ -81,6 +81,7 @@ class GetForumService:
             self.db_session.add(content_daily_view)
             self.db_session.commit()
             self.db_session.refresh(content_daily_view)
+            self.db_session.refresh(self.forum)
         except Exception as e:
             self.db_session.rollback()
             raise e
@@ -94,6 +95,7 @@ class GetForumService:
             posted_by=PosterInfo(
                 id=self.forum.poster.id,
                 full_name=self.forum.poster.full_name,
+                role=self.forum.poster.role,
             ),
             views_count=self.forum.views_count,
             likes_count=self.forum.likes_count,

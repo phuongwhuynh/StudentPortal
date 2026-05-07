@@ -150,6 +150,7 @@ class ListForumService:
                     posted_by=PosterInfo(
                         id=forum.poster.id,
                         full_name=forum.poster.full_name,
+                        role=forum.poster.role,
                     ),
                     body=forum.body,
                     created_at=forum.created_at,

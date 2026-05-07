@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from pydantic import BaseModel, Field
+from sp_backend.constants.user import UserRole
 
 
 class PosterInfo(BaseModel):
@@ -11,6 +12,11 @@ class PosterInfo(BaseModel):
     )
     full_name: str = Field(
         ..., description="The name of the user who posted the forum", example="John Doe"
+    )
+    role: UserRole = Field(
+        ...,
+        description="The role of the user who posted the forum",
+        example=UserRole.STUDENT,
     )
 
 
@@ -62,5 +68,5 @@ class ForumListResponse(BaseModel):
     forums: list[GetForumResponse] = Field(..., description="List of forum posts")
 
 
-class TodaysForumsCountResponse(BaseModel):
+class CountForumResponse(BaseModel):
     count: int = Field(..., description="The number of forums created today", example=5)

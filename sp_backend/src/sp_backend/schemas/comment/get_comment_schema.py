@@ -1,12 +1,16 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from sp_backend.constants.content_type import ContentType
+from sp_backend.constants.user import UserRole
 
 
 class CommenterInfo(BaseModel):
     id: int = Field(..., description="The ID of the commenter", example=1)
     full_name: str = Field(
         ..., description="The full name of the commenter", example="John Doe"
+    )
+    role: UserRole = Field(
+        ..., description="The role of the commenter", example=UserRole.STUDENT
     )
 
 
