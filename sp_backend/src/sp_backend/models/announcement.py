@@ -40,6 +40,9 @@ class Announcement(Base):
     views_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     likes_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     comments_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    expired_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -52,6 +52,7 @@ class CreateAnnouncementService:
             category=self.create_announcement_request.category,
             priority=self.create_announcement_request.priority,
             posted_by=self.user_id,
+            expired_at=self.create_announcement_request.expired_at,
         )
         try:
             self.db_session.add(self.announcement)
@@ -80,4 +81,5 @@ class CreateAnnouncementService:
             comments_count=self.announcement.comments_count,
             created_at=self.announcement.created_at,
             updated_at=self.announcement.updated_at,
+            expired_at=self.announcement.expired_at,
         )

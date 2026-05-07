@@ -25,6 +25,11 @@ class CreateAnnouncementRequest(BaseModel):
         description="The body of the announcement",
         example="This is the body of the announcement.",
     )
+    expired_at: datetime = Field(
+        ...,
+        description="The expiration timestamp of the announcement",
+        example="2024-01-31T23:59:59Z",
+    )
 
 
 class AnnouncementPoster(BaseModel):
@@ -67,6 +72,11 @@ class CreateAnnouncementResponse(BaseModel):
     )
     comments_count: int = Field(
         ..., description="The number of comments for the announcement", example=0
+    )
+    expired_at: datetime = Field(
+        ...,
+        description="The expiration timestamp of the announcement",
+        example="2024-01-31T23:59:59Z",
     )
     created_at: datetime = Field(
         ...,

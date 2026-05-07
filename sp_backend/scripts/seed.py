@@ -241,7 +241,8 @@ def seed_questions():
 
 def seed_announcements():
     staff = session.query(User).filter_by(role=UserRole.STAFF).first()
-
+    today = date.today()
+    expired_date = today + timedelta(days=30)  # Set expiration date 30 days from today
     announcements_data = [
         {
             "title": "Semester Start Announcement",
@@ -249,6 +250,7 @@ def seed_announcements():
             "category": AnnouncementCategory.ACADEMIC,
             "priority": AnnouncementPriority.INFO,
             "posted_by": staff.id if staff else 1,
+            "expired_at": expired_date,
         },
         {
             "title": "Library Maintenance",
@@ -256,6 +258,7 @@ def seed_announcements():
             "category": AnnouncementCategory.LIBRARY,
             "priority": AnnouncementPriority.WARNING,
             "posted_by": staff.id if staff else 1,
+            "expired_at": expired_date,
         },
         {
             "title": "Career Fair 2026",
@@ -263,6 +266,7 @@ def seed_announcements():
             "category": AnnouncementCategory.CAREER_SERVICES,
             "priority": AnnouncementPriority.NEW,
             "posted_by": staff.id if staff else 1,
+            "expired_at": expired_date,
         },
     ]
     announcements = []
@@ -276,6 +280,7 @@ def seed_announcements():
                 category=data["category"],
                 priority=data["priority"],
                 posted_by=data["posted_by"],
+                expired_at=data["expired_at"],
             )
         )
     session.add_all(announcements)
