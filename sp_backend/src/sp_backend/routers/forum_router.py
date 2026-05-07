@@ -9,7 +9,7 @@ from sp_backend.schemas.forum.get_forum_schema import (
     ForumListResponse,
     GetForumResponse,
 )
-from sp_backend.dependencies.auth import get_current_user
+from sp_backend.dependencies.auth import get_current_user, get_current_user_optional
 from sp_backend.services.forum.create_forum_service import CreateForumService
 from sp_backend.services.forum.list_forum_service import ListForumService
 from sp_backend.services.forum.get_forum_service import GetForumService
@@ -37,6 +37,7 @@ async def create_forum(
 @router.get("/", status_code=status.HTTP_200_OK, response_class=JSONResponse)
 async def list_forums(
     request: Request,
+    current_user=Depends(get_current_user_optional),
     sort_by: SortOptions = Query(
         SortOptions.RECENT, description="Sort forums by this criteria"
     ),
@@ -56,6 +57,7 @@ async def list_forums(
         search=search,
         limit=limit,
         offset=offset,
+        user_id=current_user.id if current_user else None,
     )
     forum_list_response: ForumListResponse = service.invoke()
     return forum_list_response
@@ -65,10 +67,12 @@ async def list_forums(
 async def get_forum_details(
     request: Request,
     forum_id: int,
+    current_user=Depends(get_current_user_optional),
 ) -> GetForumResponse:
     service = GetForumService(
         db_session=request.state.db,
         forum_id=forum_id,
+        user_id=current_user.id if current_user else None,
     )
     forum_response: GetForumResponse = service.invoke()
     return forum_response

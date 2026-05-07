@@ -1,4 +1,5 @@
 from sp_backend.models.forum import Forum
+from sp_backend.models.reaction import Reaction
 from sp_backend.models.content_daily_view import ContentDailyView
 from sqlalchemy import or_, func
 from sqlalchemy.orm import Session, Query, joinedload
@@ -8,6 +9,7 @@ from sp_backend.schemas.forum.get_forum_schema import (
     ForumListResponse,
 )
 from sp_backend.constants.forum import SortOptions, ForumCategory
+from sp_backend.constants.content_type import ContentType
 from typing import Optional
 from sp_backend.services.forum.exception import InvalidQueryParameterException
 from datetime import date, timedelta
@@ -23,6 +25,7 @@ class ListForumService:
         search: Optional[str],
         limit: int,
         offset: int,
+        user_id: Optional[int] = None,
     ):
         self.db_session: Session = db_session
         self.sort_by: SortOptions = sort_by
@@ -32,6 +35,7 @@ class ListForumService:
         self.offset: int = offset
         self.query: Optional[Query] = None
         self.forum_list_response: Optional[ForumListResponse] = None
+        self.user_id: Optional[int] = user_id
 
     def validate_request(self):
         if not self.search and self.sort_by == SortOptions.RELEVANT:
@@ -123,6 +127,20 @@ class ListForumService:
 
     def get_forums(self):
         forums: list[Forum] = self.query.all()
+        forum_ids = [forum.id for forum in forums]
+        liked_forum_ids = []
+        if self.user_id is not None and forum_ids:
+            reactions = (
+                self.db_session.query(Reaction.content_id)
+                .filter(
+                    Reaction.content_type == ContentType.FORUM,
+                    Reaction.content_id.in_(forum_ids),
+                    Reaction.user_id == self.user_id,
+                )
+                .all()
+            )
+            liked_forum_ids = [r.content_id for r in reactions]
+
         self.forum_list_response = ForumListResponse(
             forums=[
                 GetForumResponse(
@@ -139,6 +157,7 @@ class ListForumService:
                     views_count=forum.views_count,
                     likes_count=forum.likes_count,
                     comments_count=forum.comments_count,
+                    has_liked=forum.id in liked_forum_ids,
                 )
                 for forum in forums
             ],

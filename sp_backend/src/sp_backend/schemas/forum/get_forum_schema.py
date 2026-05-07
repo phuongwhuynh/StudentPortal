@@ -51,6 +51,11 @@ class GetForumResponse(BaseModel):
         description="The timestamp when the forum post was last updated",
         example="2024-01-01T12:00:00Z",
     )
+    has_liked: bool = Field(
+        ...,
+        description="Indicates whether the current user has liked the forum post",
+        example=False,
+    )
 
 
 class ForumListResponse(BaseModel):
