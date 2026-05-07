@@ -68,6 +68,12 @@ class ContentResult(BaseModel):
         description="The priority of the announcement (if content_type is announcement)",
         example=AnnouncementPriority.URGENT,
     )
+    # has user liked this content or not, to be used in frontend to display like button state
+    has_liked: bool = Field(
+        ...,
+        description="Indicates whether the current user has liked this content",
+        example=False,
+    )
     # for debugging purposes only, not to be used in frontend
     distance: float = Field(
         ...,

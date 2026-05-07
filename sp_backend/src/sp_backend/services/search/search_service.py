@@ -1,6 +1,6 @@
-from sqlalchemy import Float, or_, func, cast, Enum
-from sqlalchemy.orm import Session, Query, joinedload
-from sqlalchemy import func, literal
+from sqlalchemy import Float, cast, Enum, literal
+from sqlalchemy.orm import Session, Query
+
 from sp_backend.constants.content_type import ContentType
 from typing import Optional
 from sp_backend.constants.forum import ForumCategory
@@ -16,14 +16,24 @@ from sp_backend.schemas.search.search_schema import (
     ContentResult,
     PosterInfo,
 )
+from sp_backend.constants.content_type import ContentType
+from sp_backend.models.reaction import Reaction
 
 
 class SearchService:
-    def __init__(self, db_session: Session, search: str, limit: int, offset: int):
+    def __init__(
+        self,
+        db_session: Session,
+        search: str,
+        limit: int,
+        offset: int,
+        user_id: Optional[int] = None,
+    ):
         self.db_session: Session = db_session
         self.search: str = search
         self.limit: int = limit
         self.offset: int = offset
+        self.user_id: Optional[int] = user_id
         self.final_query: Optional[Query] = None
         self.search_response: Optional[SearchResponse] = None
 
@@ -132,7 +142,52 @@ class SearchService:
     def build_response(self):
         results = self.final_query.all()
         search_results = []
+        ids_by_type = {
+            ContentType.FORUM.value: [],
+            ContentType.QUESTION.value: [],
+            ContentType.ANNOUNCEMENT.value: [],
+        }
         for result in results:
+            ids_by_type[result.content_type].append(result.id)
+
+        liked_ids = set()
+        if self.user_id is not None:
+            reactions = (
+                self.db_session.query(Reaction.content_type, Reaction.content_id)
+                .filter(
+                    Reaction.user_id == self.user_id,
+                    (
+                        (Reaction.content_type == ContentType.FORUM)
+                        & (
+                            Reaction.content_id.in_(
+                                ids_by_type[ContentType.FORUM.value]
+                            )
+                        )
+                    )
+                    | (
+                        (Reaction.content_type == ContentType.QUESTION)
+                        & (
+                            Reaction.content_id.in_(
+                                ids_by_type[ContentType.QUESTION.value]
+                            )
+                        )
+                    )
+                    | (
+                        (Reaction.content_type == ContentType.ANNOUNCEMENT)
+                        & (
+                            Reaction.content_id.in_(
+                                ids_by_type[ContentType.ANNOUNCEMENT.value]
+                            )
+                        )
+                    ),
+                )
+                .all()
+            )
+            liked_ids = {(r.content_type.value, r.content_id) for r in reactions}
+
+        # Collect IDs by content type
+        for result in results:
+            has_liked = (result.content_type, result.id) in liked_ids
             search_results.append(
                 ContentResult(
                     id=result.id,
@@ -152,6 +207,7 @@ class SearchService:
                     likes_count=result.likes_count,
                     comments_count=result.comments_count,
                     distance=result.distance,
+                    has_liked=has_liked,
                 )
             )
         self.search_response = SearchResponse(results=search_results)

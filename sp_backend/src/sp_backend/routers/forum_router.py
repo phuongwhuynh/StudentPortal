@@ -10,6 +10,7 @@ from sp_backend.schemas.forum.get_forum_schema import (
     GetForumResponse,
 )
 from sp_backend.dependencies.auth import get_current_user, get_current_user_optional
+from sp_backend.schemas.user.user_claims import UserClaims
 from sp_backend.services.forum.create_forum_service import CreateForumService
 from sp_backend.services.forum.list_forum_service import ListForumService
 from sp_backend.services.forum.get_forum_service import GetForumService
@@ -23,7 +24,7 @@ router = APIRouter(tags=["Forum"], prefix="/forum")
 async def create_forum(
     request: Request,
     create_forum_request: CreateForumRequest,
-    current_user=Depends(get_current_user),
+    current_user: UserClaims = Depends(get_current_user),
 ) -> CreateForumResponse:
     service = CreateForumService(
         db_session=request.state.db,
@@ -37,7 +38,7 @@ async def create_forum(
 @router.get("/", status_code=status.HTTP_200_OK, response_class=JSONResponse)
 async def list_forums(
     request: Request,
-    current_user=Depends(get_current_user_optional),
+    current_user: Optional[UserClaims] = Depends(get_current_user_optional),
     sort_by: SortOptions = Query(
         SortOptions.RECENT, description="Sort forums by this criteria"
     ),
@@ -67,7 +68,7 @@ async def list_forums(
 async def get_forum_details(
     request: Request,
     forum_id: int,
-    current_user=Depends(get_current_user_optional),
+    current_user: Optional[UserClaims] = Depends(get_current_user_optional),
 ) -> GetForumResponse:
     service = GetForumService(
         db_session=request.state.db,
