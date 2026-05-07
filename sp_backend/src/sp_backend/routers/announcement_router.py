@@ -94,7 +94,7 @@ async def count_announcements(
 async def get_announcement(
     request: Request,
     announcement_id: int = Path(
-        ..., description="The ID of the announcement to retrieve", example=1
+        ..., description="The ID of the announcement to retrieve", examples=1
     ),
     current_user: Optional[UserClaims] = Depends(get_current_user_optional),
 ) -> GetAnnouncementResponse:

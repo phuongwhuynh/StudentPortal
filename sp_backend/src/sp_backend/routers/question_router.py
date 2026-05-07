@@ -5,15 +5,18 @@ from sp_backend.dependencies.auth import get_current_user, get_current_user_opti
 from sp_backend.schemas.question.create_question_schema import (
     CreateQuestionRequest,
     CreateQuestionResponse,
+    ResolveQuestionResponse,
 )
 from sp_backend.schemas.question.get_question_schema import (
     GetQuestionResponse,
     ListQuestionsResponse,
 )
+from sp_backend.schemas.user.user_claims import UserClaims
 from sp_backend.services.question.create_question_service import CreateQuestionService
 from sp_backend.constants.question import QuestionCategory, QuestionStatus, SortOptions
 from sp_backend.services.question.get_question_service import GetQuestionService
 from sp_backend.services.question.list_question_service import ListQuestionService
+from sp_backend.services.question.resolve_question_service import ResolveQuestionService
 from typing import Optional
 
 router = APIRouter(tags=["Question"], prefix="/question")
@@ -23,7 +26,7 @@ router = APIRouter(tags=["Question"], prefix="/question")
 async def create_question(
     request: Request,
     create_question_request: CreateQuestionRequest,
-    current_user=Depends(get_current_user),
+    current_user: UserClaims = Depends(get_current_user),
 ) -> CreateQuestionResponse:
     service = CreateQuestionService(
         db_session=request.state.db_session,
@@ -32,6 +35,25 @@ async def create_question(
     )
     create_question_response: CreateQuestionResponse = service.invoke()
     return create_question_response
+
+
+@router.post(
+    "/resolve/{question_id}",
+    status_code=status.HTTP_200_OK,
+    response_class=JSONResponse,
+)
+async def resolve_question(
+    request: Request,
+    question_id: int = Path(..., description="The ID of the question to resolve"),
+    current_user: UserClaims = Depends(get_current_user),
+) -> ResolveQuestionResponse:
+    service = ResolveQuestionService(
+        db_session=request.state.db,
+        question_id=question_id,
+        user_id=current_user.id,
+    )
+    resolve_question_response: ResolveQuestionResponse = service.invoke()
+    return resolve_question_response
 
 
 @router.get("/categories", status_code=status.HTTP_200_OK, response_class=JSONResponse)
@@ -54,7 +76,7 @@ async def list_question_statuses(
 async def get_question(
     request: Request,
     question_id: int = Path(..., description="The ID of the question to retrieve"),
-    current_user=Depends(get_current_user_optional),
+    current_user: Optional[UserClaims] = Depends(get_current_user_optional),
 ) -> GetQuestionResponse:
     service = GetQuestionService(
         db_session=request.state.db,

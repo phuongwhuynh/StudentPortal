@@ -61,14 +61,14 @@ class CreateQuestionService:
             title=self.question.title,
             body=self.question.body,
             category=self.question.category,
+            status=self.question.status,
             posted_by=PosterInfo(
                 id=self.user.id,
                 full_name=self.user.full_name,
-                email=self.user.email,
+                role=self.user.role,
             ),
             views_count=self.question.views_count,
             likes_count=self.question.likes_count,
             comments_count=self.question.comments_count,
             created_at=self.question.created_at,
-            updated_at=self.question.updated_at,
         )

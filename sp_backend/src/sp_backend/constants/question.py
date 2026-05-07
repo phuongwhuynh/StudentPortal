@@ -15,7 +15,6 @@ class QuestionCategory(str, Enum):
 class QuestionStatus(str, Enum):
     OPEN = "Open"
     COMPLETED = "Completed"
-    CANCELED = "Canceled"
 
 
 class SortOptions(str, Enum):
