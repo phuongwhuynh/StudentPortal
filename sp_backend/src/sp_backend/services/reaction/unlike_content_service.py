@@ -11,6 +11,7 @@ from sp_backend.services.reaction.exception import (
     ReactionNotFoundException,
 )
 from sp_backend.schemas.reaction.reaction_schema import ReactionResponse
+from typing import Optional
 
 
 class UnlikeContentService:
@@ -26,14 +27,35 @@ class UnlikeContentService:
         self.content_id: int = content_id
         self.user_id: int = user_id
         self.reaction: Reaction = None
+        self.content: Optional[Forum | Question | Announcement] = None
 
     def validate_request(self):
         # Validate that the user exists
         user = self.db_session.query(User).filter(User.id == self.user_id).first()
         if not user:
             raise UserNotFoundException()
+        # validate that the content exists based on content_type and content_id
+        if self.content_type == ContentType.FORUM:
+            self.content = (
+                self.db_session.query(Forum).filter(Forum.id == self.content_id).first()
+            )
+        elif self.content_type == ContentType.QUESTION:
+            self.content = (
+                self.db_session.query(Question)
+                .filter(Question.id == self.content_id)
+                .first()
+            )
+        elif self.content_type == ContentType.ANNOUNCEMENT:
+            self.content = (
+                self.db_session.query(Announcement)
+                .filter(Announcement.id == self.content_id)
+                .first()
+            )
+        if not self.content:
+            raise ContentNotFoundException(self.content_type, self.content_id)
+
         # validate that the reaction exists based on content_type and content_id
-        reaction = (
+        self.reaction = (
             self.db_session.query(Reaction)
             .filter(
                 Reaction.user_id == self.user_id,
@@ -42,16 +64,18 @@ class UnlikeContentService:
             )
             .first()
         )
-        if not reaction:
+        if not self.reaction:
             raise ReactionNotFoundException(
                 self.user_id, self.content_type, self.content_id
             )
-        self.reaction = reaction
 
     def delete_reaction(self):
+        self.content.likes_count -= 1
         try:
             self.db_session.delete(self.reaction)
+            self.db_session.add(self.content)
             self.db_session.commit()
+            self.db_session.refresh(self.content)
         except Exception as e:
             self.db_session.rollback()
             raise e

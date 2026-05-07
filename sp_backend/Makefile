@@ -17,6 +17,6 @@ reset-db:
 	docker exec -i pgvector-db psql -U student_portal_user -d template1 -c "CREATE DATABASE student_portal;"
 
 seed:
-	
+	poetry run python scripts/seed.py
 
 setup: reset-db migrate seed

@@ -27,6 +27,11 @@ class CommentInfo(BaseModel):
     parent_comment_id: Optional[int] = Field(
         None, description="The ID of the parent comment, if this is a reply"
     )
+    load_more: bool = Field(
+        False,
+        description="Indicates if there are more replies to load for this comment",
+        example=False,
+    )
 
 
 class ListCommentsResponse(BaseModel):

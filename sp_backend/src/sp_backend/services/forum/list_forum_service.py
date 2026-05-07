@@ -77,7 +77,7 @@ class ListForumService:
                 ),
             )
             .filter(
-                ContentDailyView.content_type == "forum",
+                ContentDailyView.content_type == ContentType.FORUM,
                 ContentDailyView.content_date >= week_ago,
                 ContentDailyView.content_date <= today,
             )

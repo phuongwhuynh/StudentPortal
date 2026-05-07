@@ -8,6 +8,8 @@ from sp_backend.schemas.forum.get_forum_schema import (
 from typing import Optional
 from sp_backend.services.forum.exception import ForumNotFoundException
 from sp_backend.constants.content_type import ContentType
+from sp_backend.models.content_daily_view import ContentDailyView
+from datetime import date
 
 
 class GetForumService:
@@ -50,6 +52,39 @@ class GetForumService:
         )
         self.user_liked = reaction is not None
 
+    def update_views_count(self):
+        # Increment the views count of the forum
+        self.forum.views_count += 1
+        today = date.today()
+        content_daily_view = (
+            self.db_session.query(ContentDailyView)
+            .filter(
+                ContentDailyView.content_id == self.forum_id,
+                ContentDailyView.content_type == ContentType.FORUM,
+                ContentDailyView.content_date == today,
+            )
+            .first()
+        )
+
+        if content_daily_view:
+            content_daily_view.views_count += 1
+        else:
+            content_daily_view = ContentDailyView(
+                content_id=self.forum_id,
+                content_type=ContentType.FORUM,
+                content_date=today,
+                views_count=1,
+            )
+
+        try:
+            self.db_session.add(self.forum)
+            self.db_session.add(content_daily_view)
+            self.db_session.commit()
+            self.db_session.refresh(content_daily_view)
+        except Exception as e:
+            self.db_session.rollback()
+            raise e
+
     def build_response(self):
         self.forum_response = GetForumResponse(
             id=self.forum.id,
@@ -70,5 +105,6 @@ class GetForumService:
     def invoke(self) -> GetForumResponse:
         self.get_forum()
         self.get_user_reaction()
+        self.update_views_count()
         self.build_response()
         return self.forum_response

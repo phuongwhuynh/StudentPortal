@@ -18,7 +18,8 @@ class CreateCommentRequest(BaseModel):
         example=ContentType.FORUM,
     )
     parent_comment_id: Optional[int] = Field(
-        None, description="The ID of the parent comment if this is a reply"
+        None,
+        description="The ID of the parent comment if this is a reply",
     )
 
 

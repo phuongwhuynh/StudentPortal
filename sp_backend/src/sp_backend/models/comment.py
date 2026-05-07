@@ -40,3 +40,6 @@ class Comment(Base):
     children_comments: Mapped[list[Comment]] = relationship(
         "Comment", back_populates="parent_comment", cascade="all, delete-orphan"
     )
+    poster: Mapped[User] = relationship(
+        "User", back_populates="comments", lazy="joined"
+    )

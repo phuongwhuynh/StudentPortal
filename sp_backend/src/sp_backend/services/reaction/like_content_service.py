@@ -8,6 +8,7 @@ from sp_backend.models.announcement import Announcement
 from sp_backend.services.user.exception import UserNotFoundException
 from sp_backend.services.reaction.exception import ContentNotFoundException
 from sp_backend.schemas.reaction.reaction_schema import ReactionResponse
+from typing import Optional
 
 
 class LikeContentService:
@@ -23,6 +24,7 @@ class LikeContentService:
         self.content_id: int = content_id
         self.user_id: int = user_id
         self.reaction: Reaction = None
+        self.content: Optional[Forum | Question | Announcement] = None
 
     def validate_request(self):
         # Validate that the user exists
@@ -30,24 +32,23 @@ class LikeContentService:
         if not user:
             raise UserNotFoundException()
         # validate that the content exists based on content_type and content_id
-        content = None
         if self.content_type == ContentType.FORUM:
-            content = (
+            self.content = (
                 self.db_session.query(Forum).filter(Forum.id == self.content_id).first()
             )
         elif self.content_type == ContentType.QUESTION:
-            content = (
+            self.content = (
                 self.db_session.query(Question)
                 .filter(Question.id == self.content_id)
                 .first()
             )
         elif self.content_type == ContentType.ANNOUNCEMENT:
-            content = (
+            self.content = (
                 self.db_session.query(Announcement)
                 .filter(Announcement.id == self.content_id)
                 .first()
             )
-        if not content:
+        if not self.content:
             raise ContentNotFoundException(self.content_type, self.content_id)
 
     def like_content(self):
@@ -65,16 +66,18 @@ class LikeContentService:
             return
 
         # Create a new reaction
-        new_reaction = Reaction(
+        self.reaction = Reaction(
             content_type=self.content_type,
             content_id=self.content_id,
             user_id=self.user_id,
         )
+        self.content.likes_count += 1
         try:
-            self.db_session.add(new_reaction)
+            self.db_session.add(self.reaction)
+            self.db_session.add(self.content)
             self.db_session.commit()
-            self.db_session.refresh(new_reaction)
-            self.reaction: Reaction = new_reaction
+            self.db_session.refresh(self.reaction)
+            self.db_session.refresh(self.content)
         except:
             self.db_session.rollback()
             raise

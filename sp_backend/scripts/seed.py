@@ -329,36 +329,7 @@ def seed_content_daily_views():
     session.flush()
 
 
-def seed_reactions():
-    """Seed reactions as 'likes' for posts (forums, questions, announcements)."""
-    staff = session.query(User).filter_by(role=UserRole.STAFF).first()
-    student = session.query(User).filter_by(role=UserRole.STUDENT).first()
-    forum = session.query(Forum).first()
-    question = session.query(Question).first()
-    announcement = session.query(Announcement).first()
-    reactions = [
-        Reaction(
-            content_type=ContentType.FORUM,
-            content_id=forum.id if forum else 1,
-            user_id=student.id if student else 3,
-        ),
-        Reaction(
-            content_type=ContentType.QUESTION,
-            content_id=question.id if question else 1,
-            user_id=staff.id if staff else 1,
-        ),
-        Reaction(
-            content_type=ContentType.ANNOUNCEMENT,
-            content_id=announcement.id if announcement else 1,
-            user_id=student.id if student else 3,
-        ),
-    ]
-    session.add_all(reactions)
-    session.flush()
-
-
 def seed_comments():
-
     # Get users and content ids
     staff = session.query(User).filter_by(role=UserRole.STAFF).first()
     student = session.query(User).filter_by(role=UserRole.STUDENT).first()
@@ -395,9 +366,9 @@ def seed():
     seed_forums()
     seed_announcements()
     seed_questions()
-    seed_comments()
-    seed_reactions()
-    seed_content_daily_views()
+    # seed_comments()
+    # seed_reactions()
+    # seed_content_daily_views()
     session.commit()
     print("Seed data inserted successfully.")
 
