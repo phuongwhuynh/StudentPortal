@@ -26,9 +26,10 @@ export async function getForumById(id: string): Promise<ForumThread | undefined>
   return getForumByIdMock(id);
 }
 
-export async function addForumComment(id: string, body: string, user: User): Promise<ForumThread> {
+export async function addForumComment(id: string, body: string, user: User, parentCommentId: string | null = null): Promise<ForumThread> {
   // Real API: POST ${API_ENDPOINTS.forumComments(id)}
-  return addForumCommentMock(id, body, user);
+  // Payload may include: { body, parentCommentId }
+  return addForumCommentMock(id, body, user, parentCommentId);
 }
 
 export async function toggleForumLike(id: string, user: User): Promise<ForumThread> {

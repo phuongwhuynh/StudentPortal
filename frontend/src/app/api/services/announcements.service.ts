@@ -6,8 +6,9 @@ import { API_ENDPOINTS } from "../constants";
   - GET ${API_ENDPOINTS.announcementById(id)}         -> get announcement by id
   - POST ${API_ENDPOINTS.announcementComments(id)}    -> add comment to announcement
 */
-import { createAnnouncementMock, getAnnouncementByIdMock, getAnnouncementsMock } from "../mockHandlers";
+import { addAnnouncementCommentMock, createAnnouncementMock, getAnnouncementByIdMock, getAnnouncementsMock } from "../mockHandlers";
 import type { AnnouncementPost } from "../../types/content";
+import type { User } from "../../types/auth";
 
 export async function listAnnouncements(): Promise<AnnouncementPost[]> {
   // Real API: GET ${API_ENDPOINTS.announcements}
@@ -23,4 +24,10 @@ export async function createAnnouncement(title: string, body: string, category?:
 export async function getAnnouncementById(id: string): Promise<AnnouncementPost | undefined> {
   // Real API: GET ${API_ENDPOINTS.announcementById(id)}
   return getAnnouncementByIdMock(id);
+}
+
+export async function addAnnouncementComment(id: string, body: string, user: User, parentCommentId: string | null = null): Promise<AnnouncementPost> {
+  // Real API: POST ${API_ENDPOINTS.announcementComments(id)}
+  // Payload may include: { body, parentCommentId }
+  return addAnnouncementCommentMock(id, body, user, parentCommentId);
 }

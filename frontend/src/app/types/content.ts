@@ -51,7 +51,7 @@ export interface AnnouncementPost {
   title: string;
   body: string;
   category: string;
-  priority: "info" | "warning" | "success" | "urgent";
+  priority: "info" | "warning" | "urgent";
   postedBy: ContentUserRef;
   createdAt: string;
   expiresAt?: string | null;

@@ -7,8 +7,9 @@ import { useAuth } from "../auth/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
-import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import type { ForumThread } from "../types/content";
+import CommentTree from "./CommentTree";
 
 export default function ForumThreadDetail() {
   const { id } = useParams();
@@ -32,17 +33,19 @@ export default function ForumThreadDetail() {
   }, [id, user]);
 
   const comments = useMemo(
-    () => [...(thread?.comments ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    () => [...(thread?.comments ?? [])].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [thread],
   );
 
-  const addComment = async () => {
-    if (!thread || !commentBody.trim() || !user) return;
+  const addComment = async (parentCommentId: string | null = null, body = commentBody) => {
+    if (!thread || !body.trim() || !user) return;
     try {
       setCommentError(null);
-      const updated = await addForumComment(thread.id, commentBody.trim(), user);
+      const updated = await addForumComment(thread.id, body.trim(), user, parentCommentId);
       setThread({ ...updated });
-      setCommentBody("");
+      if (parentCommentId === null) {
+        setCommentBody("");
+      }
     } catch (error) {
       setCommentError(error instanceof Error ? error.message : "Unable to post comment");
     }
@@ -120,26 +123,20 @@ export default function ForumThreadDetail() {
         <CardContent className="p-6 space-y-4">
           <h2 className="font-semibold text-lg">Comments</h2>
           {user ? (
-            <div className="flex gap-2">
-              <Input value={commentBody} onChange={(e) => setCommentBody(e.target.value)} placeholder="Write a comment..." />
-              <Button onClick={addComment}><Send className="w-4 h-4 mr-2" />Post</Button>
+            <div className="space-y-2 rounded-xl border bg-gray-50 p-4">
+              <Textarea value={commentBody} onChange={(e) => setCommentBody(e.target.value)} placeholder="Write a comment..." rows={3} />
+              <div className="flex justify-end">
+                <Button onClick={() => addComment(null, commentBody)} disabled={!commentBody.trim()}>
+                  <Send className="w-4 h-4 mr-2" />Post Comment
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-500">Log in or continue as student/staff to comment.</p>
           )}
           {commentError && <p className="text-sm text-red-600">{commentError}</p>}
 
-          <div className="space-y-3">
-            {comments.map((comment) => (
-              <div key={comment.id} className="rounded-lg border bg-gray-50 p-4 space-y-2">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium">{comment.postedBy.displayName}</span>
-                  <span className="text-gray-500">{formatDistanceToNowStrict(new Date(comment.createdAt), { addSuffix: true })}</span>
-                </div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.body}</p>
-              </div>
-            ))}
-          </div>
+          <CommentTree comments={comments} currentUser={user} canReply onReply={(parentCommentId, body) => addComment(parentCommentId, body)} />
         </CardContent>
       </Card>
     </div>

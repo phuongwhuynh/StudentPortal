@@ -10,7 +10,6 @@ import {
   Filter,
   AlertCircle,
   Info,
-  CheckCircle,
   Megaphone
 } from "lucide-react";
 import { formatDistanceToNowStrict } from "date-fns";
@@ -34,6 +33,7 @@ export default function Announcements() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [priorityFilter, setPriorityFilter] = useState("all");
+  const [expiryFilter, setExpiryFilter] = useState<"all" | "active" | "expired">("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -86,8 +86,6 @@ export default function Announcements() {
         return { icon: AlertCircle, color: "text-red-600", bg: "bg-red-50" };
       case "warning":
         return { icon: Megaphone, color: "text-orange-600", bg: "bg-orange-50" };
-      case "success":
-        return { icon: CheckCircle, color: "text-green-600", bg: "bg-green-50" };
       default:
         return { icon: Info, color: "text-blue-600", bg: "bg-blue-50" };
     }
@@ -100,7 +98,6 @@ export default function Announcements() {
       case "warning":
         return <Badge className="bg-orange-500">Warning</Badge>;
       case "info":
-      case "success":
         return <Badge className="bg-blue-500">New Info</Badge>;
       default:
         return <Badge variant="secondary">Info</Badge>;
@@ -116,20 +113,28 @@ export default function Announcements() {
 
   const categories = ["all", "Academic", "IT Services", "Events", "Library", "Student Services", "Facilities", "Career Services"];
 
+  const isExpired = (expiresAt?: string | null) => {
+    if (!expiresAt) return false;
+    return new Date(expiresAt) < new Date();
+  };
+
   const filteredAnnouncements = useMemo(() => announcements.filter(announcement => {
     const matchesSearch = announcement.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          announcement.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === "all" || announcement.category === filterCategory;
-    const normalizedPriority = announcement.type === "success" ? "info" : announcement.type;
-    const matchesPriority = priorityFilter === "all" || normalizedPriority === priorityFilter;
-    return matchesSearch && matchesCategory && matchesPriority;
-  }), [announcements, searchQuery, filterCategory, priorityFilter]);
+    const matchesPriority = priorityFilter === "all" || announcement.type === priorityFilter;
+    const matchesExpiry =
+      expiryFilter === "all" ||
+      (expiryFilter === "expired" && isExpired(announcement.expiresAt)) ||
+      (expiryFilter === "active" && !isExpired(announcement.expiresAt));
+    return matchesSearch && matchesCategory && matchesPriority && matchesExpiry;
+  }), [announcements, searchQuery, filterCategory, priorityFilter, expiryFilter]);
 
   const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("recent");
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filterCategory, priorityFilter, sortMode]);
+  }, [searchQuery, filterCategory, priorityFilter, expiryFilter, sortMode]);
 
   const relevanceScore = (item: any, q: string) => {
     const hay = `${item.title} ${item.content}`.toLowerCase();
@@ -301,7 +306,7 @@ export default function Announcements() {
               >
                 <span className="font-medium text-sm">{priority.label}</span>
                 <Badge variant="secondary" className={`text-xs ${priority.color}`}>
-                  {priority.value === "all" ? announcements.length : announcements.filter((item) => (item.type === "success" ? "info" : item.type) === priority.value).length}
+                  {priority.value === "all" ? announcements.length : announcements.filter((item) => item.type === priority.value).length}
                 </Badge>
               </button>
             ))}
@@ -332,6 +337,17 @@ export default function Announcements() {
                 {category === "all" ? "All Categories" : category}
               </SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+        <Select value={expiryFilter} onValueChange={(value) => setExpiryFilter(value as "all" | "active" | "expired")}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <Calendar className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Filter by expiry" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Non-Expired</SelectItem>
+            <SelectItem value="expired">Expired</SelectItem>
           </SelectContent>
         </Select>
         <Select value={sortMode} onValueChange={(v) => setSortMode(v as any)}>

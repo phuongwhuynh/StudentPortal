@@ -135,6 +135,29 @@ export async function createAnnouncementMock(title: string, body: string, catego
   return delay(item);
 }
 
+export async function addAnnouncementCommentMock(announcementId: string, body: string, user: User, parentCommentId: string | null = null): Promise<AnnouncementPost> {
+  const announcement = announcements.find((item) => item.id === announcementId);
+  if (!announcement) {
+    throw new Error("Announcement not found");
+  }
+
+  const comment: Comment = {
+    id: makeId("ann-c"),
+    contentType: "announcement",
+    contentId: announcement.id,
+    parentCommentId,
+    body,
+    postedBy: { id: user.id, displayName: user.displayName, role: user.role },
+    createdAt: new Date().toISOString(),
+    likes: 0,
+  };
+
+  announcement.comments.push(comment);
+  announcement.counts.comments += 1;
+  announcement.repliedAt = comment.createdAt;
+  return delay(announcement);
+}
+
 export async function createQuestionMock(title: string, body: string, category = "General"): Promise<QuestionThread> {
   const item: QuestionThread = {
     id: makeId("q"),
@@ -154,7 +177,7 @@ export async function createQuestionMock(title: string, body: string, category =
   return delay(item);
 }
 
-export async function addForumCommentMock(threadId: string, body: string, user: User): Promise<ForumThread> {
+export async function addForumCommentMock(threadId: string, body: string, user: User, parentCommentId: string | null = null): Promise<ForumThread> {
   const thread = forumThreads.find((item) => item.id === threadId);
   if (!thread) {
     throw new Error("Forum thread not found");
@@ -164,7 +187,7 @@ export async function addForumCommentMock(threadId: string, body: string, user: 
     id: makeId("forum-c"),
     contentType: "forum",
     contentId: thread.id,
-    parentCommentId: null,
+    parentCommentId,
     body,
     postedBy: { id: user.id, displayName: user.displayName, role: user.role },
     createdAt: new Date().toISOString(),
@@ -177,7 +200,7 @@ export async function addForumCommentMock(threadId: string, body: string, user: 
   return delay(thread);
 }
 
-export async function addQuestionReplyMock(questionId: string, body: string, user: User): Promise<QuestionThread> {
+export async function addQuestionReplyMock(questionId: string, body: string, user: User, parentCommentId: string | null = null): Promise<QuestionThread> {
   const question = questions.find((item) => item.id === questionId);
   if (!question) {
     throw new Error("Question not found");
@@ -192,7 +215,7 @@ export async function addQuestionReplyMock(questionId: string, body: string, use
     id: makeId("q-c"),
     contentType: "question",
     contentId: question.id,
-    parentCommentId: null,
+    parentCommentId,
     body,
     postedBy: { id: user.id, displayName: user.displayName, role: user.role },
     createdAt: now,

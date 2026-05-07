@@ -2,13 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ArrowLeft, Eye, ThumbsUp, MessageCircle, Send, User, CheckCircle2, Trash2, Loader2 } from "lucide-react";
-import { acceptQuestion, addQuestionReply, getQuestionById, toggleCommentLike, isCommentLiked, toggleQuestionLike, isQuestionLiked } from "../api/services/questions.service";
+import { acceptQuestion, addQuestionReply, addQuestionReplyToComment, getQuestionById, toggleCommentLike, isCommentLiked, toggleQuestionLike, isQuestionLiked } from "../api/services/questions.service";
 import { useAuth } from "../auth/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent } from "./ui/card";
-import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
 import type { QuestionThread } from "../types/content";
+import CommentTree from "./CommentTree";
 
 export default function QuestionDetail() {
   const { id } = useParams();
@@ -30,17 +31,21 @@ export default function QuestionDetail() {
   }, [question, user]);
 
   const comments = useMemo(
-    () => [...(question?.comments ?? [])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    () => [...(question?.comments ?? [])].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
     [question],
   );
 
-  const addReply = async () => {
-    if (!question || !commentBody.trim() || !user) return;
+  const addReply = async (parentCommentId: string | null = null, body = commentBody) => {
+    if (!question || !body.trim() || !user) return;
     try {
       setReplyError(null);
-      const updated = await addQuestionReply(question.id, commentBody.trim(), user);
+      const updated = parentCommentId
+        ? await addQuestionReplyToComment(question.id, body.trim(), user, parentCommentId)
+        : await addQuestionReply(question.id, body.trim(), user);
       setQuestion({ ...updated });
-      setCommentBody("");
+      if (parentCommentId === null) {
+        setCommentBody("");
+      }
     } catch (error) {
       setReplyError(error instanceof Error ? error.message : "Unable to post reply");
     }
@@ -153,33 +158,20 @@ export default function QuestionDetail() {
           {isAccepted ? (
             <p className="text-sm text-green-700">This Q&A has been resolved. New replies are disabled.</p>
           ) : user ? (
-            <div className="flex gap-2">
-              <Input value={commentBody} onChange={(e) => setCommentBody(e.target.value)} placeholder="Write a reply..." />
-              <Button onClick={addReply}><Send className="w-4 h-4 mr-2" />Post</Button>
+            <div className="space-y-2 rounded-xl border bg-gray-50 p-4">
+              <Textarea value={commentBody} onChange={(e) => setCommentBody(e.target.value)} placeholder="Write a reply..." rows={3} />
+              <div className="flex justify-end">
+                <Button onClick={() => addReply(null, commentBody)} disabled={!commentBody.trim()}>
+                  <Send className="w-4 h-4 mr-2" />Post Reply
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-gray-500">Log in or continue as student/staff to reply.</p>
           )}
           {replyError && <p className="text-sm text-red-600">{replyError}</p>}
 
-          <div className="space-y-3">
-            {comments.map((comment) => (
-              <div key={comment.id} className="rounded-lg border bg-gray-50 p-4 space-y-2">
-                <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium">{comment.postedBy.displayName}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-500">{formatDistanceToNowStrict(new Date(comment.createdAt), { addSuffix: true })}</span>
-                    <div className="flex items-center gap-1 text-sm text-gray-600">
-                      <ThumbsUp className="w-4 h-4" />
-                      <span>{comment.likes ?? 0}</span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">{comment.body}</p>
-                {comment.repliedBy && <p className="text-xs text-green-700">Replied by {comment.repliedBy.displayName}</p>}
-              </div>
-            ))}
-          </div>
+          <CommentTree comments={comments} currentUser={user} canReply={!isAccepted} onReply={(parentCommentId, body) => addReply(parentCommentId, body)} />
         </CardContent>
       </Card>
     </div>

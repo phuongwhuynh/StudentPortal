@@ -34,6 +34,17 @@ const forumComments: Comment[] = [
     repliedAt: null,
     likes: 4,
   },
+  {
+    id: "forum-c-2",
+    contentType: "forum",
+    contentId: "forum-1",
+    parentCommentId: "forum-c-1",
+    body: "Agreed. The VPN login is the same as your student account.",
+    postedBy: { id: "staff-2", displayName: "IT Services Staff", role: "staff" },
+    createdAt: minus(70),
+    repliedAt: null,
+    likes: 2,
+  },
 ];
 
 const announcementComments: Comment[] = [
@@ -47,6 +58,17 @@ const announcementComments: Comment[] = [
     createdAt: minus(120),
     repliedAt: null,
     likes: 2,
+  },
+  {
+    id: "ann-c-2",
+    contentType: "announcement",
+    contentId: "ann-1",
+    parentCommentId: "ann-c-1",
+    body: "Yes, the portal will stay online during the maintenance window.",
+    postedBy: { id: "staff-1", displayName: "Admin Office", role: "staff" },
+    createdAt: minus(110),
+    repliedAt: null,
+    likes: 1,
   },
 ];
 
@@ -62,6 +84,17 @@ const questionComments: Comment[] = [
     repliedAt: minus(145),
     repliedBy: { id: "staff-2", displayName: "IT Services Staff", role: "staff" },
     likes: 12,
+  },
+  {
+    id: "q-c-2",
+    contentType: "question",
+    contentId: "q-1",
+    parentCommentId: "q-c-1",
+    body: "Thanks, that worked for me as well.",
+    postedBy: { id: "student-1", displayName: "Alex Nguyen", role: "student" },
+    createdAt: minus(140),
+    repliedAt: null,
+    likes: 3,
   },
 ];
 
