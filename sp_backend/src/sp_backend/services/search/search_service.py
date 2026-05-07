@@ -1,4 +1,4 @@
-from sqlalchemy import Float, cast, Enum, literal
+from sqlalchemy import DateTime, Float, cast, Enum, literal
 from sqlalchemy.orm import Session, Query
 
 from sp_backend.constants.content_type import ContentType
@@ -18,6 +18,7 @@ from sp_backend.schemas.search.search_schema import (
 )
 from sp_backend.constants.content_type import ContentType
 from sp_backend.models.reaction import Reaction
+from datetime import datetime
 
 
 class SearchService:
@@ -70,6 +71,8 @@ class SearchService:
             Forum.views_count.label("views_count"),
             Forum.likes_count.label("likes_count"),
             Forum.comments_count.label("comments_count"),
+            cast(None, DateTime).label("expired_at"),
+            cast(None, DateTime).label("completed_at"),
         )
 
         # Announcement query
@@ -90,6 +93,8 @@ class SearchService:
             Announcement.views_count.label("views_count"),
             Announcement.likes_count.label("likes_count"),
             Announcement.comments_count.label("comments_count"),
+            Announcement.expired_at.label("expired_at"),
+            cast(None, DateTime).label("completed_at"),
         )
         question_query = self.db_session.query(
             Question.id.label("id"),
@@ -108,6 +113,8 @@ class SearchService:
             Question.views_count.label("views_count"),
             Question.likes_count.label("likes_count"),
             Question.comments_count.label("comments_count"),
+            cast(None, DateTime).label("expired_at"),
+            Question.completed_at.label("completed_at"),
         )
 
         # Union all queries
@@ -132,6 +139,8 @@ class SearchService:
                 union_query.c.views_count,
                 union_query.c.likes_count,
                 union_query.c.comments_count,
+                union_query.c.expired_at,
+                union_query.c.completed_at,
             )
             .join(User, union_query.c.posted_by_id == User.id)
             .order_by(union_query.c.distance.asc())
@@ -185,9 +194,20 @@ class SearchService:
             )
             liked_ids = {(r.content_type.value, r.content_id) for r in reactions}
 
-        # Collect IDs by content type
         for result in results:
             has_liked = (result.content_type, result.id) in liked_ids
+
+            has_expired = None
+            has_resolved = None
+            if result.content_type == ContentType.ANNOUNCEMENT.value:
+                expired_at = getattr(result, "expired_at", None)
+                if expired_at is not None:
+                    now = datetime.now(tz=expired_at.tzinfo)
+                    has_expired = expired_at < now
+            if result.content_type == ContentType.QUESTION.value:
+                completed_at = getattr(result, "completed_at", None)
+                has_resolved = completed_at is not None
+
             search_results.append(
                 ContentResult(
                     id=result.id,
@@ -208,6 +228,8 @@ class SearchService:
                     comments_count=result.comments_count,
                     distance=result.distance,
                     has_liked=has_liked,
+                    has_expired=has_expired,
+                    has_resolved=has_resolved,
                 )
             )
         self.search_response = SearchResponse(results=search_results)

@@ -74,6 +74,16 @@ class ContentResult(BaseModel):
         description="Indicates whether the current user has liked this content",
         example=False,
     )
+    has_expired: Optional[bool] = Field(
+        None,
+        description="Indicates whether the content has expired (applicable for announcements)",
+        example=False,
+    )
+    has_resolved: Optional[bool] = Field(
+        None,
+        description="Indicates whether the question has been resolved (applicable for questions)",
+        example=False,
+    )
     # for debugging purposes only, not to be used in frontend
     distance: float = Field(
         ...,

@@ -8,12 +8,16 @@ from sp_backend.schemas.forum.create_forum_schema import (
 from sp_backend.schemas.forum.get_forum_schema import (
     ForumListResponse,
     GetForumResponse,
+    TodaysForumsCountResponse,
 )
 from sp_backend.dependencies.auth import get_current_user, get_current_user_optional
 from sp_backend.schemas.user.user_claims import UserClaims
 from sp_backend.services.forum.create_forum_service import CreateForumService
 from sp_backend.services.forum.list_forum_service import ListForumService
 from sp_backend.services.forum.get_forum_service import GetForumService
+from sp_backend.services.forum.get_todays_forums_count_service import (
+    GetTodaysForumsCountService,
+)
 from sp_backend.constants.forum import SortOptions, ForumCategory
 from typing import Optional
 
@@ -62,6 +66,15 @@ async def list_forums(
     )
     forum_list_response: ForumListResponse = service.invoke()
     return forum_list_response
+
+
+@router.get("/today_count", status_code=status.HTTP_200_OK, response_class=JSONResponse)
+async def get_todays_forums_count(
+    request: Request,
+) -> TodaysForumsCountResponse:
+    service = GetTodaysForumsCountService(db_session=request.state.db)
+    count: int = service.invoke()
+    return TodaysForumsCountResponse(count=count)
 
 
 @router.get("/{forum_id}", status_code=status.HTTP_200_OK, response_class=JSONResponse)

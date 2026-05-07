@@ -26,14 +26,6 @@ class GetCommentsOfContentService:
 
     def validate_request(self):
         # Validate that the content exists based on content_type and content_id
-        content_exists = (
-            self.db_session.query(Comment)
-            .filter(
-                Comment.content_type == self.content_type,
-                Comment.content_id == self.content_id,
-            )
-            .first()
-        )
         content = None
         if self.content_type == ContentType.FORUM:
             content = (

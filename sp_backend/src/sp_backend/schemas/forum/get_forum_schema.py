@@ -60,3 +60,7 @@ class GetForumResponse(BaseModel):
 
 class ForumListResponse(BaseModel):
     forums: list[GetForumResponse] = Field(..., description="List of forum posts")
+
+
+class TodaysForumsCountResponse(BaseModel):
+    count: int = Field(..., description="The number of forums created today", example=5)
