@@ -16,9 +16,9 @@ class Question(Base):
     __tablename__ = "questions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String(300), nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False)
-    body_embedding: Mapped[list[float]] = mapped_column(
+    title: Mapped[str] = mapped_column(String(300), nullable=False, index=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    embedding: Mapped[list[float]] = mapped_column(
         Vector(EMBEDDING_DIM),
         nullable=False,
     )
@@ -78,9 +78,9 @@ class Question(Base):
     )
     __table_args__ = (
         Index(
-            "ix_questions_body_embedding_hnsw",
-            "body_embedding",
+            "ix_questions_embedding_hnsw",
+            "embedding",
             postgresql_using="hnsw",
-            postgresql_ops={"body_embedding": "vector_cosine_ops"},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
     )

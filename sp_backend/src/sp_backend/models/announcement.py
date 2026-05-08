@@ -16,9 +16,9 @@ class Announcement(Base):
     __tablename__ = "announcements"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    title: Mapped[str] = mapped_column(String(300), nullable=False)
-    body: Mapped[str] = mapped_column(Text, nullable=False)
-    body_embedding: Mapped[list[float]] = mapped_column(
+    title: Mapped[str] = mapped_column(String(300), nullable=False, index=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    embedding: Mapped[list[float]] = mapped_column(
         Vector(EMBEDDING_DIM),
         nullable=False,
     )
@@ -40,6 +40,9 @@ class Announcement(Base):
     views_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     likes_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     comments_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    expired_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -60,9 +63,9 @@ class Announcement(Base):
     )
     __table_args__ = (
         Index(
-            "ix_announcements_body_embedding_hnsw",
-            "body_embedding",
+            "ix_announcements_embedding_hnsw",
+            "embedding",
             postgresql_using="hnsw",
-            postgresql_ops={"body_embedding": "vector_cosine_ops"},
+            postgresql_ops={"embedding": "vector_cosine_ops"},
         ),
     )

@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from sp_backend.models.forum import Forum
-    from sp_backend.models.content_view import ContentView
     from sp_backend.models.announcement import Announcement
     from sp_backend.models.question import Question
+    from sp_backend.models.comment import Comment
 
 from sp_backend.db.base import Base
 from sqlalchemy import Integer, String, func, DateTime, Enum
@@ -64,7 +64,9 @@ class User(Base):
     questions_cancelled: Mapped[list[Question]] = relationship(
         "Question", back_populates="canceller", foreign_keys="[Question.cancelled_by]"
     )
-
-    content_views: Mapped[list[ContentView]] = relationship(
-        "ContentView", back_populates="user", cascade="all, delete-orphan"
+    comments: Mapped[list[Comment]] = relationship(
+        "Comment", back_populates="poster", cascade="all, delete-orphan"
     )
+    # content_views: Mapped[list[ContentView]] = relationship(
+    #     "ContentView", back_populates="user", cascade="all, delete-orphan"
+    # )

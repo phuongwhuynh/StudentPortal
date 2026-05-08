@@ -18,6 +18,7 @@ from datetime import datetime
 from sp_backend.constants.content_type import ContentType
 
 
+# chắc là ko làm đâu, sẽ xoá bảng này
 class ContentView(Base):
     __tablename__ = "content_views"
 

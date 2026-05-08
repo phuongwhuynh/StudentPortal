@@ -19,3 +19,18 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
 
     return UserClaims.model_validate(payload)
+
+def get_current_user_optional(
+    request: Request, access_token: str | None = Cookie(default=None)
+) -> UserClaims | None:
+    if access_token is None:
+        return None
+
+    try:
+        payload = decode_jwt(access_token)
+        payload["email"] = payload["email"]
+        payload["full_name"] = payload["full_name"]
+    except ValueError:
+        return None
+
+    return UserClaims.model_validate(payload)

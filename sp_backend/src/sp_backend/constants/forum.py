@@ -8,3 +8,9 @@ class ForumCategory(str, Enum):
     IT_TECHNOLOGY = "IT & Technology"
     STUDENT_AFFAIRS = "Student Affairs"
     GENERAL = "General"
+
+
+class SortOptions(str, Enum):
+    TRENDING = "trending"
+    RECENT = "recent"
+    RELEVANT = "relevant"
