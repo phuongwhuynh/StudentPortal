@@ -10,14 +10,18 @@ from sp_backend.schemas.question.create_question_schema import (
 from sp_backend.schemas.question.get_question_schema import (
     GetQuestionResponse,
     ListQuestionsResponse,
+    CountQuestionsResponse,
 )
 from sp_backend.schemas.user.user_claims import UserClaims
 from sp_backend.services.question.create_question_service import CreateQuestionService
 from sp_backend.constants.question import QuestionCategory, QuestionStatus, SortOptions
+from sp_backend.services.question.delete_question_service import DeleteQuestionService
 from sp_backend.services.question.get_question_service import GetQuestionService
 from sp_backend.services.question.list_question_service import ListQuestionService
 from sp_backend.services.question.resolve_question_service import ResolveQuestionService
 from typing import Optional
+from datetime import date
+from sp_backend.services.question.count_question_service import CountQuestionService
 
 router = APIRouter(tags=["Question"], prefix="/question")
 
@@ -68,6 +72,33 @@ async def list_question_statuses(
     request: Request,
 ) -> list[QuestionStatus]:
     return [status for status in QuestionStatus]
+
+
+@router.get(
+    "/sort-options", status_code=status.HTTP_200_OK, response_class=JSONResponse
+)
+async def list_question_sort_options(
+    request: Request,
+) -> list[SortOptions]:
+    return [option for option in SortOptions]
+
+
+@router.get("/count", status_code=status.HTTP_200_OK, response_class=JSONResponse)
+async def count_questions(
+    request: Request,
+    status: Optional[QuestionStatus] = Query(
+        None, description="Filter questions by status"
+    ),
+    posted_on: Optional[date] = Query(
+        None, description="Filter questions posted on this date (YYYY-MM-DD)"
+    ),
+) -> CountQuestionsResponse:
+    service = CountQuestionService(
+        db_session=request.state.db,
+        status=status,
+        posted_on=posted_on,
+    )
+    return service.invoke()
 
 
 @router.get(
@@ -123,3 +154,17 @@ async def list_questions(
     )
     question_list_response: ListQuestionsResponse = service.invoke()
     return question_list_response
+
+
+@router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_question(
+    request: Request,
+    question_id: int = Path(..., description="The ID of the question to delete"),
+    current_user: UserClaims = Depends(get_current_user),
+):
+    service = DeleteQuestionService(
+        db_session=request.state.db,
+        question_id=question_id,
+        user_id=current_user.id,
+    )
+    service.invoke()

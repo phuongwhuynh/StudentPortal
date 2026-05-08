@@ -112,3 +112,11 @@ class ListQuestionsResponse(BaseModel):
     questions: list[GetQuestionWithLatestCommentResponse] = Field(
         ..., description="A list of questions matching the criteria"
     )
+
+
+class CountQuestionsResponse(BaseModel):
+    count: int = Field(
+        ...,
+        description="The total number of questions matching the criteria",
+        example=42,
+    )

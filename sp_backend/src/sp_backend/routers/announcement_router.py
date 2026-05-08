@@ -13,6 +13,9 @@ from sp_backend.services.announcement.count_announcement_service import (
 from sp_backend.services.announcement.create_announcement_service import (
     CreateAnnouncementService,
 )
+from sp_backend.services.announcement.delete_announcement_service import (
+    DeleteAnnouncementService,
+)
 from sp_backend.services.announcement.get_announcement_service import (
     GetAnnouncementService,
 )
@@ -63,6 +66,15 @@ async def list_announcement_priorities(
     request: Request,
 ) -> list[AnnouncementPriority]:
     return [priority for priority in AnnouncementPriority]
+
+
+@router.get(
+    "/sort-options", status_code=status.HTTP_200_OK, response_class=JSONResponse
+)
+async def list_announcement_sort_options(
+    request: Request,
+) -> list[SortOptions]:
+    return [option for option in SortOptions]
 
 
 @router.get("/count", status_code=status.HTTP_200_OK, response_class=JSONResponse)
@@ -148,3 +160,19 @@ async def list_announcements(
     )
     announcement_list_response: ListAnnouncementsResponse = service.invoke()
     return announcement_list_response
+
+
+@router.delete("/{announcement_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_announcement(
+    request: Request,
+    announcement_id: int = Path(
+        ..., description="The ID of the announcement to delete", examples=1
+    ),
+    current_user: UserClaims = Depends(get_current_user),
+):
+    service = DeleteAnnouncementService(
+        db_session=request.state.db,
+        announcement_id=announcement_id,
+        user_id=current_user.id,
+    )
+    service.invoke()

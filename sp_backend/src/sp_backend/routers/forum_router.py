@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, status, Query
+from fastapi import APIRouter, Depends, Path, status, Query
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from sp_backend.schemas.forum.create_forum_schema import (
@@ -22,6 +22,7 @@ from sp_backend.services.forum.count_forum_service import (
 )
 from sp_backend.constants.forum import SortOptions, ForumCategory
 from typing import Optional
+from sp_backend.services.forum.delete_forum_service import DeleteForumService
 
 router = APIRouter(tags=["Forum"], prefix="/forum")
 
@@ -59,6 +60,15 @@ async def list_forum_categories(
     request: Request,
 ) -> list[ForumCategory]:
     return [category for category in ForumCategory]
+
+
+@router.get(
+    "/sort-options", status_code=status.HTTP_200_OK, response_class=JSONResponse
+)
+async def list_forum_sort_options(
+    request: Request,
+) -> list[SortOptions]:
+    return [option for option in SortOptions]
 
 
 @router.get("/{forum_id}", status_code=status.HTTP_200_OK, response_class=JSONResponse)
@@ -103,3 +113,17 @@ async def list_forums(
     )
     forum_list_response: ForumListResponse = service.invoke()
     return forum_list_response
+
+
+@router.delete("/{forum_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_forum(
+    request: Request,
+    forum_id: int = Path(..., description="The ID of the forum to delete", examples=1),
+    current_user: UserClaims = Depends(get_current_user),
+):
+    service = DeleteForumService(
+        db_session=request.state.db,
+        forum_id=forum_id,
+        user_id=current_user.id,
+    )
+    service.invoke()
