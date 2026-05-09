@@ -1,10 +1,10 @@
 .PHONY: docker-up docker-down run-backend
 
 docker-up:
-	docker-compose -p sp_backend -f docker/docker-compose.yml up -d
+	docker compose -p sp_backend -f docker/docker-compose.yml up -d
 
 docker-down:
-	docker-compose -p sp_backend -f docker/docker-compose.yml down
+	docker compose -p sp_backend -f docker/docker-compose.yml down
 
 run-backend:
 	poetry run uvicorn sp_backend.main:app --reload

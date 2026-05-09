@@ -38,7 +38,7 @@ class CreateForumService:
         self.forum = Forum(
             title=self.create_forum_request.title,
             body=self.create_forum_request.body,
-            body_embedding=self.embedding,
+            embedding=self.embedding,
             category=self.create_forum_request.category,
             posted_by=self.user_id,
         )

@@ -33,7 +33,7 @@ async def create_question(
     current_user: UserClaims = Depends(get_current_user),
 ) -> CreateQuestionResponse:
     service = CreateQuestionService(
-        db_session=request.state.db_session,
+        db_session=request.state.db,
         create_question_request=create_question_request,
         user_id=current_user.id,
     )

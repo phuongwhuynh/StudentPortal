@@ -8,7 +8,7 @@ from sp_backend.models.user import User
 from sp_backend.models.question import Question
 from sp_backend.services.user.exception import UserNotFoundException
 from sp_backend.services.embedding.embedding_service import EmbeddingService
-
+from sp_backend.constants.question import QuestionStatus
 
 class CreateQuestionService:
     def __init__(
@@ -40,8 +40,9 @@ class CreateQuestionService:
         self.question = Question(
             title=self.create_question_request.title,
             body=self.create_question_request.body,
-            body_embedding=self.embedding,
+            embedding=self.embedding,
             category=self.create_question_request.category,
+            status=QuestionStatus.OPEN,
             posted_by=self.user_id,
         )
         try:

@@ -47,6 +47,12 @@ def seed_users():
             email="student.diana@uni.edu",
             hashed_password=PasswordService.hash_password("diana123456"),
         ),
+        User(
+            full_name="Nguyen Huu Thanh",
+            role=UserRole.STAFF,
+            email="admin@uni.edu",
+            hashed_password=PasswordService.hash_password("admin123"),
+        ),
     ]
     session.add_all(users)
     session.flush()

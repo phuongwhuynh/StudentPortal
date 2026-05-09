@@ -70,11 +70,12 @@ class CreateAnnouncementService:
             id=self.announcement.id,
             title=self.announcement.title,
             body=self.announcement.body,
+            priority=self.announcement.priority,
             category=self.announcement.category,
             posted_by=AnnouncementPoster(
                 id=self.user.id,
                 email=self.user.email,
-                full_name=self.user.full_name,
+                name=self.user.full_name,
             ),
             views_count=self.announcement.views_count,
             likes_count=self.announcement.likes_count,
