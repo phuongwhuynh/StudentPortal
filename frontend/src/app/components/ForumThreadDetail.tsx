@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import { formatDistanceToNowStrict } from "date-fns";
-import { ArrowLeft, Eye, Heart, MessageCircle, Send, User, Trash2 } from "lucide-react";
-import { addForumComment, getForumById, isForumLikedByUser, toggleForumLike } from "../api/services/forums.service";
+import { ArrowLeft, Eye, Heart, MessageCircle, Send, User, Trash2, Loader2 } from "lucide-react";
+import { addForumComment, deleteForum, getForumById, isForumLikedByUser, toggleForumLike } from "../api/services/forums.service";
+import { incrementForumView } from "../api/services/forums.service";
 import { useAuth } from "../auth/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -13,16 +14,35 @@ import CommentTree from "./CommentTree";
 
 export default function ForumThreadDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [thread, setThread] = useState<ForumThread | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [liked, setLiked] = useState(false);
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const hasIncrementedRef = useRef(false);
+
+  useEffect(() => {
+    hasIncrementedRef.current = false;
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
     getForumById(id).then((item) => setThread(item ?? null));
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !thread) return;
+    // increment view once after user sees the page; guard with a ref to avoid double increments in StrictMode
+    if ((hasIncrementedRef as any).current) return;
+    (hasIncrementedRef as any).current = true;
+    const t = setTimeout(() => {
+      incrementForumView(id);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [id, thread]);
 
   useEffect(() => {
     if (!id || !user) {
@@ -56,6 +76,21 @@ export default function ForumThreadDetail() {
     const updated = await toggleForumLike(thread.id, user);
     setThread({ ...updated });
     setLiked((current) => !current);
+  };
+
+  const handleDeleteForum = async () => {
+    if (!thread || user?.role !== "staff" || isDeleting) return;
+
+    setDeleteError(null);
+    setIsDeleting(true);
+    try {
+      await deleteForum(thread.id);
+      navigate("/forums");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Unable to delete forum");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   if (!thread) {
@@ -96,7 +131,12 @@ export default function ForumThreadDetail() {
                 </div>
                 <h1 className="text-3xl font-bold leading-tight">{thread.title}</h1>
               </div>
-              {user?.role === "staff" && <Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" />Delete</Button>}
+              {user?.role === "staff" && (
+                <Button variant="destructive" size="sm" onClick={handleDeleteForum} disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  Delete
+                </Button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -109,12 +149,13 @@ export default function ForumThreadDetail() {
 
             {user && user.role !== "guest" && (
               <Button variant={liked ? "default" : "outline"} onClick={toggleLike} className="w-fit">
-                <Heart className="w-4 h-4 mr-2" />
+                <Heart className="w-4 h-4 mr-2" fill={liked ? "currentColor" : "none"} />
                 {liked ? "Unlike" : "Like"}
               </Button>
             )}
 
             <p className="text-gray-700 leading-7 whitespace-pre-wrap">{thread.body}</p>
+            {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
           </div>
         </CardContent>
       </Card>

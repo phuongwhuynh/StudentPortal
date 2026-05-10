@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { formatDistanceToNowStrict } from "date-fns";
-import { ArrowLeft, Eye, Heart, User, Trash2, Send, Clock3, BadgeAlert } from "lucide-react";
-import { addAnnouncementComment, getAnnouncementById } from "../api/services/announcements.service";
+import { ArrowLeft, Eye, Heart, User, Trash2, Send, Clock3, BadgeAlert, Loader2 } from "lucide-react";
+import { addAnnouncementComment, deleteAnnouncement, getAnnouncementById } from "../api/services/announcements.service";
 import { useAuth } from "../auth/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -13,10 +13,13 @@ import CommentTree from "./CommentTree";
 
 export default function AnnouncementDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [post, setPost] = useState<AnnouncementPost | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isExpired = useMemo(() => {
     if (!post?.expiresAt) return false;
@@ -39,6 +42,21 @@ export default function AnnouncementDetail() {
       }
     } catch (error) {
       setCommentError(error instanceof Error ? error.message : "Unable to post comment");
+    }
+  };
+
+  const handleDeleteAnnouncement = async () => {
+    if (!post || user?.role !== "staff" || isDeleting) return;
+
+    setDeleteError(null);
+    setIsDeleting(true);
+    try {
+      await deleteAnnouncement(post.id);
+      navigate("/announcements");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Unable to delete announcement");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -86,7 +104,12 @@ export default function AnnouncementDetail() {
                 </div>
                 <h1 className="text-3xl font-bold leading-tight">{post.title}</h1>
               </div>
-              {user?.role === "staff" && <Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" />Delete</Button>}
+              {user?.role === "staff" && (
+                <Button variant="destructive" size="sm" onClick={handleDeleteAnnouncement} disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  Delete
+                </Button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -121,6 +144,7 @@ export default function AnnouncementDetail() {
             </div>
 
             <p className="text-gray-700 leading-7 whitespace-pre-wrap">{post.body}</p>
+            {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
           </div>
         </CardContent>
       </Card>

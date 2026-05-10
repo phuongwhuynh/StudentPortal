@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useParams } from "react-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router";
 import { formatDistanceToNowStrict } from "date-fns";
 import { ArrowLeft, Eye, ThumbsUp, MessageCircle, Send, User, CheckCircle2, Trash2, Loader2 } from "lucide-react";
-import { acceptQuestion, addQuestionReply, addQuestionReplyToComment, getQuestionById, toggleCommentLike, isCommentLiked, toggleQuestionLike, isQuestionLiked } from "../api/services/questions.service";
+import { acceptQuestion, addQuestionReply, addQuestionReplyToComment, deleteQuestion, getQuestionById, toggleCommentLike, isCommentLiked, toggleQuestionLike, isQuestionLiked } from "../api/services/questions.service";
+import { incrementQuestionView } from "../api/services/questions.service";
 import { useAuth } from "../auth/AuthContext";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -13,17 +14,35 @@ import CommentTree from "./CommentTree";
 
 export default function QuestionDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [question, setQuestion] = useState<QuestionThread | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [replyError, setReplyError] = useState<string | null>(null);
   const [acceptError, setAcceptError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [questionLiked, setQuestionLiked] = useState(false);
+  const hasIncrementedRef = useRef(false);
+
+  useEffect(() => {
+    hasIncrementedRef.current = false;
+  }, [id]);
 
   useEffect(() => {
     if (!id) return;
     getQuestionById(id).then((item) => setQuestion(item ?? null));
   }, [id]);
+
+  useEffect(() => {
+    if (!id || !question) return;
+    if (hasIncrementedRef.current) return;
+    hasIncrementedRef.current = true;
+    const t = setTimeout(() => {
+      incrementQuestionView(id);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [id, question]);
 
   useEffect(() => {
     if (!question || !user) return;
@@ -59,6 +78,21 @@ export default function QuestionDetail() {
       setQuestion({ ...updated });
     } catch (error) {
       setAcceptError(error instanceof Error ? error.message : "Unable to accept question");
+    }
+  };
+
+  const handleDeleteQuestion = async () => {
+    if (!question || user?.role !== "staff" || isDeleting) return;
+
+    setDeleteError(null);
+    setIsDeleting(true);
+    try {
+      await deleteQuestion(question.id);
+      navigate("/questions");
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : "Unable to delete question");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -108,7 +142,12 @@ export default function QuestionDetail() {
                 </div>
                 <h1 className="text-3xl font-bold leading-tight">{question.title}</h1>
               </div>
-              {user?.role === "staff" && <Button variant="destructive" size="sm"><Trash2 className="w-4 h-4 mr-2" />Delete</Button>}
+              {user?.role === "staff" && (
+                <Button variant="destructive" size="sm" onClick={handleDeleteQuestion} disabled={isDeleting}>
+                  {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+                  Delete
+                </Button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -128,9 +167,9 @@ export default function QuestionDetail() {
                   }
                 }}
                 aria-pressed={questionLiked}
-                className={"ml-2 p-2 rounded " + (questionLiked ? "bg-white text-black" : "bg-black text-white")}
+                className={"ml-2 p-2 rounded border " + (questionLiked ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-300 text-gray-600")}
               >
-                <ThumbsUp className="w-4 h-4" />
+                <ThumbsUp className="w-4 h-4" fill={questionLiked ? "currentColor" : "none"} />
               </button>
               <span className="flex items-center gap-1.5"><MessageCircle className="w-4 h-4" />{question.counts.comments} replies</span>
             </div>
@@ -148,6 +187,7 @@ export default function QuestionDetail() {
               <p className="text-sm text-amber-700">At least one answer is required before resolving this question.</p>
             )}
             {acceptError && <p className="text-sm text-red-600">{acceptError}</p>}
+            {deleteError && <p className="text-sm text-red-600">{deleteError}</p>}
           </div>
         </CardContent>
       </Card>

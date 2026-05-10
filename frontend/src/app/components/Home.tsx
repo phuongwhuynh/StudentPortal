@@ -6,6 +6,9 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Bell, MessagesSquare, TrendingUp, Clock, ArrowRight, Search } from "lucide-react";
 import { globalSearch, type GlobalSearchResult } from "../api/services/search.service";
+import { countForums, listForums } from "../api/services/forums.service";
+import { countAnnouncements, listAnnouncements } from "../api/services/announcements.service";
+import { countQuestions } from "../api/services/questions.service";
 import { formatDistanceToNowStrict } from "date-fns";
 
 export default function Home() {
@@ -14,6 +17,12 @@ export default function Home() {
   const [searchResults, setSearchResults] = useState<GlobalSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchPage, setSearchPage] = useState(1);
+  const [todayDiscussionCount, setTodayDiscussionCount] = useState(0);
+  const [todayAnnouncementCount, setTodayAnnouncementCount] = useState(0);
+  const [urgentAnnouncementCount, setUrgentAnnouncementCount] = useState(0);
+  const [todayQuestionCount, setTodayQuestionCount] = useState(0);
+  const [recentAnnouncements, setRecentAnnouncements] = useState<Array<{ id: string; title: string; date: string; category: string; urgent: boolean }>>([]);
+  const [trendingTopics, setTrendingTopics] = useState<Array<{ id: string; title: string; replies: number; category: string }>>([]);
 
   useEffect(() => {
     const query = searchParams.get("search") || "";
@@ -143,56 +152,51 @@ export default function Home() {
     );
   };
 
-  const recentAnnouncements = [
-    {
-      id: 1,
-      title: "Spring Semester Registration Opens",
-      date: "2 hours ago",
-      category: "Academic",
-      urgent: true,
-    },
-    {
-      id: 2,
-      title: "Campus WiFi Maintenance - March 10",
-      date: "5 hours ago",
-      category: "IT Services",
-      urgent: false,
-    },
-    {
-      id: 3,
-      title: "Guest Lecture: AI in Healthcare",
-      date: "1 day ago",
-      category: "Events",
-      urgent: false,
-    },
-  ];
+  useEffect(() => {
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const dd = String(today.getDate()).padStart(2, "0");
+    const todayParam = `${yyyy}-${mm}-${dd}`;
 
-  const trendingTopics = [
-    {
-      id: 1,
-      title: "How to access library resources remotely?",
-      replies: 24,
-      category: "Library",
-    },
-    {
-      id: 2,
-      title: "Career fair preparation tips",
-      replies: 18,
-      category: "Career Services",
-    },
-    {
-      id: 3,
-      title: "Study group for Advanced Mathematics",
-      replies: 15,
-      category: "Academics",
-    },
-  ];
+    countForums(todayParam).then(setTodayDiscussionCount).catch(() => setTodayDiscussionCount(0));
+    countAnnouncements(todayParam).then(setTodayAnnouncementCount).catch(() => setTodayAnnouncementCount(0));
+    countAnnouncements(undefined, "Urgent", false).then(setUrgentAnnouncementCount).catch(() => setUrgentAnnouncementCount(0));
+    countQuestions(todayParam).then(setTodayQuestionCount).catch(() => setTodayQuestionCount(0));
+
+    listAnnouncements({ sortBy: "recent", limit: 3, offset: 0 })
+      .then((items) => {
+        setRecentAnnouncements(
+          items.slice(0, 3).map((item) => ({
+            id: item.id,
+            title: item.title,
+            date: formatDistanceToNowStrict(new Date(item.createdAt), { addSuffix: true }),
+            category: item.category,
+            urgent: item.priority === "urgent",
+          })),
+        );
+      })
+      .catch(() => setRecentAnnouncements([]));
+
+    listForums({ sortBy: "trending", limit: 3, offset: 0 })
+      .then((items) => {
+        setTrendingTopics(
+          items.slice(0, 3).map((item) => ({
+            id: item.id,
+            title: item.title,
+            replies: item.counts.comments,
+            category: item.category,
+          })),
+        );
+      })
+      .catch(() => setTrendingTopics([]));
+  }, []);
 
   const quickStats = [
-    { label: "Today's Discussions", value: "156", icon: MessagesSquare, color: "text-blue-600" },
-    { label: "Today's Announcements", value: "12", icon: Bell, color: "text-green-600" },
-    { label: "Urgent Announcements", value: "2,340", icon: TrendingUp, color: "text-purple-600" },
-    { label: "Today's Questions", value: "48", icon: Clock, color: "text-orange-600" },
+    { label: "Today's Discussions", value: String(todayDiscussionCount), icon: MessagesSquare, color: "text-blue-600" },
+    { label: "Today's Announcements", value: String(todayAnnouncementCount), icon: Bell, color: "text-green-600" },
+    { label: "Urgent Announcements", value: String(urgentAnnouncementCount), icon: TrendingUp, color: "text-purple-600" },
+    { label: "Today's Questions", value: String(todayQuestionCount), icon: Clock, color: "text-orange-600" },
   ];
 
   return (

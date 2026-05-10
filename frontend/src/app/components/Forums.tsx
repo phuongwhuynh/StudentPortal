@@ -50,6 +50,7 @@ export default function Forums() {
   const [newCategory, setNewCategory] = useState("General");
   const [createError, setCreateError] = useState<string | null>(null);
   const [likedThreads, setLikedThreads] = useState<Record<string, boolean>>({});
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   const itemsPerPage = 10;
 
@@ -100,21 +101,24 @@ export default function Forums() {
   }, [forumThreads, user]);
 
   const categories = [
-    { name: "Academic Support", count: 234, color: "bg-blue-100 text-blue-700" },
-    { name: "Campus Life", count: 156, color: "bg-green-100 text-green-700" },
-    { name: "Career Services", count: 89, color: "bg-purple-100 text-purple-700" },
-    { name: "IT & Technology", count: 67, color: "bg-orange-100 text-orange-700" },
-    { name: "Student Affairs", count: 45, color: "bg-pink-100 text-pink-700" },
-    { name: "General", count: 198, color: "bg-gray-100 text-gray-700" },
+    { name: "all", color: "bg-slate-100 text-slate-700" },
+    { name: "Academic Support", color: "bg-blue-100 text-blue-700" },
+    { name: "Campus Life", color: "bg-green-100 text-green-700" },
+    { name: "Career Services", color: "bg-purple-100 text-purple-700" },
+    { name: "IT & Technology", color: "bg-orange-100 text-orange-700" },
+    { name: "Student Affairs", color: "bg-pink-100 text-pink-700" },
+    { name: "General", color: "bg-gray-100 text-gray-700" },
   ];
 
   const filteredThreads = useMemo(
     () =>
       forumThreads.filter((thread) => {
         const haystack = `${thread.title} ${thread.author} ${thread.category} ${thread.body}`.toLowerCase();
-        return haystack.includes(searchQuery.toLowerCase());
+        const matchesSearch = haystack.includes(searchQuery.toLowerCase());
+        const matchesCategory = selectedCategory === "all" || thread.category === selectedCategory;
+        return matchesSearch && matchesCategory;
       }),
-    [forumThreads, searchQuery],
+    [forumThreads, searchQuery, selectedCategory],
   );
 
   const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("trending");
@@ -308,12 +312,10 @@ export default function Forums() {
                     <button
                       onClick={() => handleToggleLike(thread.id)}
                       aria-pressed={likedThreads[thread.id]}
-                      className={
-                        "p-2 rounded transition-colors " + (likedThreads[thread.id] ? "bg-white text-black" : "bg-black text-white")
-                      }
+                      className={"p-2 rounded border transition-colors " + (likedThreads[thread.id] ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white border-gray-300 text-gray-600")}
                       title={likedThreads[thread.id] ? "Unlike" : "Like"}
                     >
-                      <ThumbsUp className="w-4 h-4" />
+                      <ThumbsUp className="w-4 h-4" fill={likedThreads[thread.id] ? "currentColor" : "none"} />
                     </button>
                   )}
 
@@ -424,15 +426,16 @@ export default function Forums() {
             {categories.map((category) => (
               <button
                 key={category.name}
-                className="flex items-center justify-between p-4 rounded-lg border hover:border-blue-400 hover:shadow-sm transition-all text-left"
+                onClick={() => setSelectedCategory(category.name)}
+                className={
+                  "flex items-center justify-between p-4 rounded-lg border hover:border-blue-400 hover:shadow-sm transition-all text-left " +
+                  (selectedCategory === category.name ? "border-blue-500 bg-blue-50" : "")
+                }
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${category.color.split(' ')[0]}`} />
-                  <span className="font-medium text-sm">{category.name}</span>
+                  <span className="font-medium text-sm">{category.name === "all" ? "All Categories" : category.name}</span>
                 </div>
-                <Badge variant="secondary" className="text-xs">
-                  {category.count}
-                </Badge>
               </button>
             ))}
           </div>
