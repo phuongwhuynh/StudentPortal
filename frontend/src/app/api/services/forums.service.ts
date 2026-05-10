@@ -58,20 +58,90 @@ async function fetchBackendForum(id: string): Promise<BackendForum> {
   return requestJson<BackendForum>([forumByIdUrl(id)], { method: "GET" });
 }
 
-export async function listForums(options?: { sortBy?: "recent" | "trending"; limit?: number; offset?: number; category?: string; search?: string }): Promise<ForumThread[]> {
-  const params = new URLSearchParams();
-  if (options?.sortBy) params.set("sort_by", options.sortBy);
-  if (typeof options?.limit === "number") params.set("limit", String(options.limit));
-  if (typeof options?.offset === "number") params.set("offset", String(options.offset));
-  if (options?.category) params.set("category", options.category);
-  if (options?.search) params.set("search", options.search);
+// export async function listForums(options?: { sortBy?: "recent" | "trending" ; limit?: number; offset?: number; category?: string; search?: string }): Promise<ForumThread[]> {
+//   const params = new URLSearchParams();
+//   if (options?.sortBy) params.set("sort_by", options.sortBy);
+//   if (typeof options?.limit === "number") params.set("limit", String(options.limit));
+//   if (typeof options?.offset === "number") params.set("offset", String(options.offset));
+//   if (options?.category) params.set("category", options.category);
+//   if (options?.search) params.set("search", options.search);
 
+//   const url = new URL(forumListUrl);
+//   params.forEach((value, key) => url.searchParams.set(key, value));
+
+//   const response = await requestJson<BackendForumList | BackendForum[]>([url.toString()], {
+//     method: "GET",
+//   });
+//   const forums = Array.isArray(response) ? response : response.forums;
+//   return forums.map(normalizeForum);
+// }
+
+// Updated sortBy type
+// export async function listForums(options?: { 
+//   sortBy?: "recent" | "trending" | "relevant"; // Added 'relevant'
+//   limit?: number; 
+//   offset?: number; 
+//   category?: string; 
+//   search?: string 
+// }): Promise<ForumThread[]> {
+//   const params = new URLSearchParams();
+  
+//   // Mapping logic
+//   if (options?.sortBy) {
+//     params.set("sort_by", options.sortBy);
+//   }
+  
+//   // ... rest of parameters (limit, offset, category, search)
+  
+//   const url = new URL(forumListUrl);
+//   params.forEach((value, key) => url.searchParams.set(key, value));
+
+//   const response = await requestJson<BackendForumList | BackendForum[]>([url.toString()], {
+//     method: "GET",
+//   });
+//   const forums = Array.isArray(response) ? response : response.forums;
+//   return forums.map(normalizeForum);
+// }
+
+export async function listForums(options?: { 
+  sortBy?: "recent" | "trending" | "relevant"; 
+  limit?: number; 
+  offset?: number; 
+  category?: string; 
+  search?: string 
+}): Promise<ForumThread[]> {
+  const params = new URLSearchParams();
+  
+  // Mapping logic for sorting
+  if (options?.sortBy) {
+    params.set("sort_by", options.sortBy);
+  }
+
+  // Mapping for real-time search strings
+  if (options?.search?.trim()) {
+    params.set("search", options.search.trim());
+  }
+
+  // Mapping for specific forum categories
+  if (options?.category && options.category !== "all") {
+    params.set("category", options.category);
+  }
+
+  // Pagination parameters
+  if (typeof options?.limit === "number") {
+    params.set("limit", String(options.limit));
+  }
+  if (typeof options?.offset === "number") {
+    params.set("offset", String(options.offset));
+  }
+  
   const url = new URL(forumListUrl);
   params.forEach((value, key) => url.searchParams.set(key, value));
 
   const response = await requestJson<BackendForumList | BackendForum[]>([url.toString()], {
     method: "GET",
   });
+  
   const forums = Array.isArray(response) ? response : response.forums;
   return forums.map(normalizeForum);
 }

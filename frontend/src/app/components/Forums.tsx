@@ -58,8 +58,8 @@ export default function Forums() {
 
   useEffect(() => {
     let mounted = true;
-    const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "trending" | "recent" | undefined);
-    listForums({ sortBy: sortByParam }).then((items) => {
+    const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "trending" | "recent" | "relevant");
+    listForums({ sortBy: sortMode }).then((items) => {
       if (!mounted) return;
       setForumThreads(
         items.map((thread) => ({
@@ -131,8 +131,9 @@ export default function Forums() {
   useEffect(() => {
     const handler = async () => {
       let mounted = true;
-      const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "trending" | "recent" | undefined);
-      const items = await listForums({ sortBy: sortByParam });
+      // const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "trending" | "recent" | undefined);
+      const sortByParam = sortMode;
+      const items = await listForums({ sortBy: sortByParam, search: searchQuery.trim() });
       if (!mounted) return;
       setForumThreads(
         items.map((thread) => ({
@@ -149,6 +150,8 @@ export default function Forums() {
         })),
       );
     };
+
+    handler();
 
     // Listen for updates that should refresh forum counts and badges
     window.addEventListener("forums-updated", handler);

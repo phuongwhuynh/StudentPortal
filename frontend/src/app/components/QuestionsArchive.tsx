@@ -181,8 +181,12 @@ export default function QuestionsArchive() {
     };
 
     useEffect(() => {
-      const sortParam = sortMode === "trending" ? "desc" : sortMode === "recent" ? "asc" : undefined;
-      load({ q: searchQuery, category: filterCategory, sort: sortParam });
+      // const sortParam = sortMode === "trending" ? "desc" : sortMode === "recent" ? "asc" : undefined;
+      // load({ q: searchQuery, category: filterCategory, sort: sortParam });
+      const sortParam = sortMode === "trending" ? "desc" : 
+                  sortMode === "recent" ? "asc" : 
+                  "relevant"; 
+load({ q: searchQuery, category: filterCategory, sort: sortParam as any });
     }, [searchQuery, filterCategory, sortMode]);
 
     useEffect(() => {

@@ -65,8 +65,37 @@ const normalizeAnnouncement = (announcement: BackendAnnouncement): AnnouncementP
   comments: [],
 });
 
-export async function listAnnouncements(options?: { sortBy?: "recent" | "trending"; limit?: number; offset?: number; category?: string; priority?: string; hasExpired?: boolean; search?: string }): Promise<AnnouncementPost[]> {
+// export async function listAnnouncements(options?: { sortBy?: "recent" | "trending"; limit?: number; offset?: number; category?: string; priority?: string; hasExpired?: boolean; search?: string }): Promise<AnnouncementPost[]> {
+//   const params = new URLSearchParams();
+//   if (options?.sortBy) params.set("sort_by", options.sortBy);
+//   if (typeof options?.limit === "number") params.set("limit", String(options.limit));
+//   if (typeof options?.offset === "number") params.set("offset", String(options.offset));
+//   if (options?.category) params.set("category", options.category);
+//   if (options?.priority) params.set("priority", options.priority);
+//   if (typeof options?.hasExpired === "boolean") params.set("has_expired", String(options.hasExpired));
+//   if (options?.search) params.set("search", options.search);
+
+//   const url = new URL(announcementListUrl);
+//   params.forEach((value, key) => url.searchParams.set(key, value));
+
+//   const response = await requestJson<BackendAnnouncementList | BackendAnnouncement[]>([url.toString()], {
+//     method: "GET",
+//   });
+//   const announcements = Array.isArray(response) ? response : response.announcements;
+//   return announcements.map(normalizeAnnouncement);
+// }
+
+export async function listAnnouncements(options?: {
+  sortBy?: "recent" | "trending" | "relevant";
+  limit?: number;
+  offset?: number;
+  category?: string;
+  priority?: string;
+  hasExpired?: boolean;
+  search?: string;
+}): Promise<AnnouncementPost[]> {
   const params = new URLSearchParams();
+
   if (options?.sortBy) params.set("sort_by", options.sortBy);
   if (typeof options?.limit === "number") params.set("limit", String(options.limit));
   if (typeof options?.offset === "number") params.set("offset", String(options.offset));

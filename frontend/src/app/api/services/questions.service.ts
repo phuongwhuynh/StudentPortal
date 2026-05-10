@@ -83,16 +83,51 @@ async function fetchBackendQuestion(id: string): Promise<BackendQuestion> {
   return requestJson<BackendQuestion>([questionByIdUrl(id)], { method: "GET" });
 }
 
-export async function listQuestions(options?: { q?: string; category?: string; sort?: "asc" | "desc" }): Promise<QuestionThread[]> {
+// export async function listQuestions(options?: { q?: string; category?: string; sort?: "asc" | "desc" }): Promise<QuestionThread[]> {
+//   const searchParams = new URLSearchParams();
+//   if (options?.q?.trim()) {
+//     searchParams.set("search", options.q.trim());
+//   }
+//   if (options?.category && options.category !== "all") {
+//     searchParams.set("category", options.category);
+//   }
+//   if (options?.sort) {
+//     searchParams.set("sort_by", options.sort === "asc" ? "recent" : "trending");
+//   }
+
+//   const url = new URL(questionListUrl);
+//   searchParams.forEach((value, key) => url.searchParams.set(key, value));
+
+//   const response = await requestJson<BackendQuestionList | BackendQuestion[]>([url.toString()], {
+//     method: "GET",
+//   });
+//   const questions = Array.isArray(response) ? response : response.questions;
+//   return questions.map(normalizeQuestion);
+// }
+
+// Updated options type to include 'relevant'
+export async function listQuestions(options?: { 
+  q?: string; 
+  category?: string; 
+  sort?: "asc" | "desc" | "relevant" // Added 'relevant'
+}): Promise<QuestionThread[]> {
   const searchParams = new URLSearchParams();
+  
   if (options?.q?.trim()) {
     searchParams.set("search", options.q.trim());
   }
+  
   if (options?.category && options.category !== "all") {
     searchParams.set("category", options.category);
   }
+
+  // Updated sorting logic to handle 'relevant'
   if (options?.sort) {
-    searchParams.set("sort_by", options.sort === "asc" ? "recent" : "trending");
+    let sortByValue = "recent";
+    if (options.sort === "desc") sortByValue = "trending";
+    if (options.sort === "relevant") sortByValue = "relevant"; // Maps to vector search
+    
+    searchParams.set("sort_by", sortByValue);
   }
 
   const url = new URL(questionListUrl);

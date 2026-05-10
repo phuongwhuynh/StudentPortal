@@ -978,7 +978,7 @@ def seed_content():
     for i in range(40):
         ts = get_random_past_datetime()
         topic, body = random.choice(forum_topics)
-        title = f"{topic} #{i}"
+        title = f"{topic}"
         session.add(Forum(
             title=title,
             body=body,
@@ -1094,7 +1094,7 @@ def seed_content():
     for i in range(30):
         ts = get_random_past_datetime()
         title, body = random.choice(ann_data)
-        full_title = f"{title} (Notice #{i})"
+        full_title = f"{title}"
         session.add(Announcement(
             title=full_title,
             body=body,
@@ -1210,7 +1210,7 @@ def seed_content():
     for i in range(30):
         ts = get_random_past_datetime()
         title, body = random.choice(q_data)
-        full_title = f"{title} (QID:{i})"
+        full_title = f"{title}"
         session.add(Question(
             title=full_title,
             body=body,
