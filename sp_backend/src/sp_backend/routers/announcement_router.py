@@ -143,7 +143,7 @@ async def list_announcements(
         description="Search announcements by title or body",
     ),
     limit: int = Query(
-        10, ge=1, le=100, description="Number of announcements to return"
+        1000, ge=1, le=1000, description="Number of announcements to return"
     ),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
 ) -> ListAnnouncementsResponse:

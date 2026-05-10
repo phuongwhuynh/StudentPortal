@@ -15,7 +15,7 @@ router = APIRouter(tags=["Search"], prefix="/search")
 async def search(
     request: Request,
     search: str = Query(..., min_length=2, max_length=200, description="Search query"),
-    limit: int = Query(10, ge=1, le=100, description="Number of results to return"),
+    limit: int = Query(1000, ge=1, le=1000, description="Number of results to return"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     current_user: Optional[UserClaims] = Depends(get_current_user_optional),
 ) -> SearchResponse:

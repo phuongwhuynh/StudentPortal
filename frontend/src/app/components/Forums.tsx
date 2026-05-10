@@ -128,6 +128,48 @@ export default function Forums() {
     setAllPage(1);
   }, [searchQuery, sortMode]);
 
+  useEffect(() => {
+    const handler = async () => {
+      let mounted = true;
+      const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "trending" | "recent" | undefined);
+      const items = await listForums({ sortBy: sortByParam });
+      if (!mounted) return;
+      setForumThreads(
+        items.map((thread) => ({
+          id: thread.id,
+          title: thread.title,
+          author: thread.postedBy.displayName,
+          category: thread.category,
+          replies: thread.counts.comments,
+          views: thread.counts.views,
+          likes: thread.counts.likes,
+          lastActive: formatDistanceToNowStrict(new Date(thread.repliedAt ?? thread.createdAt), { addSuffix: true }),
+          createdAt: thread.createdAt,
+          body: thread.body,
+        })),
+      );
+    };
+
+    // Listen for updates that should refresh forum counts and badges
+    window.addEventListener("forums-updated", handler);
+    window.addEventListener("content-updated", handler);
+    window.addEventListener("reactions-updated", handler);
+    window.addEventListener("views-updated", handler);
+
+    // Fallback periodic refresh
+    const interval = setInterval(() => {
+      handler();
+    }, 30000);
+
+    return () => {
+      window.removeEventListener("forums-updated", handler);
+      window.removeEventListener("content-updated", handler);
+      window.removeEventListener("reactions-updated", handler);
+      window.removeEventListener("views-updated", handler);
+      clearInterval(interval);
+    };
+  }, [searchQuery, selectedCategory, sortMode]);
+
   const relevanceScore = (thread: ForumCardItem, q: string) => {
     const hay = `${thread.title} ${thread.body}`.toLowerCase();
     return (hay.match(new RegExp(q, "gi")) || []).length;
@@ -162,6 +204,17 @@ export default function Forums() {
     totalPages: number;
     onPageChange: (page: number) => void;
   }) => {
+    useEffect(() => {
+      console.debug("[Forums] PaginationControls mounted", { page, totalPages });
+      return () => {
+        console.debug("[Forums] PaginationControls unmounted", { page, totalPages });
+      };
+    }, []);
+
+    useEffect(() => {
+      console.debug("[Forums] PaginationControls updated", { page, totalPages });
+    }, [page, totalPages]);
+
     if (totalPages <= 1) return null;
 
     const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).filter((number) => {
@@ -170,7 +223,7 @@ export default function Forums() {
     });
 
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-4" role="navigation" aria-label="Forums pagination" data-testid="forums-pagination">
         <Button variant="outline" size="sm" disabled={page === 1} onClick={() => onPageChange(page - 1)}>
           Previous
         </Button>

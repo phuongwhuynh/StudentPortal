@@ -116,7 +116,7 @@ export default function QuestionsArchive() {
     });
 
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-4" role="navigation" aria-label="Pagination" data-testid="questions-pagination">
         <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}>
           Previous
         </Button>
@@ -187,8 +187,25 @@ export default function QuestionsArchive() {
 
     useEffect(() => {
       const handler = () => load({ q: searchQuery, category: filterCategory });
+
+      // Listen for a variety of update events so badges and counts refresh in real-time
       window.addEventListener("questions-updated", handler);
-      return () => window.removeEventListener("questions-updated", handler);
+      window.addEventListener("content-updated", handler);
+      window.addEventListener("reactions-updated", handler);
+      window.addEventListener("views-updated", handler);
+
+      // Periodic refresh as a fallback to keep counts (views/replies) fresh
+      const interval = setInterval(() => {
+        load({ q: searchQuery, category: filterCategory });
+      }, 30000); // 30s
+
+      return () => {
+        window.removeEventListener("questions-updated", handler);
+        window.removeEventListener("content-updated", handler);
+        window.removeEventListener("reactions-updated", handler);
+        window.removeEventListener("views-updated", handler);
+        clearInterval(interval);
+      };
     }, [searchQuery, filterCategory]);
 
   const handleCreateQuestion = async () => {

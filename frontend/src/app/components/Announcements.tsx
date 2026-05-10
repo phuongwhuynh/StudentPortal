@@ -136,6 +136,44 @@ export default function Announcements() {
     setCurrentPage(1);
   }, [searchQuery, filterCategory, priorityFilter, expiryFilter, sortMode]);
 
+  useEffect(() => {
+    const handler = async () => {
+      let mounted = true;
+      const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "recent" | "trending" | undefined);
+      const items = await listAnnouncements({ sortBy: sortByParam });
+      if (!mounted) return;
+      setAnnouncements(
+        items.map((announcement) => ({
+          id: announcement.id,
+          title: announcement.title,
+          content: announcement.body,
+          category: announcement.category,
+          type: announcement.priority,
+          date: new Date(announcement.createdAt).toLocaleDateString(),
+          time: formatDistanceToNowStrict(new Date(announcement.createdAt), { addSuffix: true }),
+          author: announcement.postedBy.displayName,
+          tags: announcement.tags,
+          expiresAt: (announcement as any).expiresAt ?? null,
+        })),
+      );
+    };
+
+    window.addEventListener("announcements-updated", handler);
+    window.addEventListener("content-updated", handler);
+    window.addEventListener("reactions-updated", handler);
+    window.addEventListener("views-updated", handler);
+
+    const interval = setInterval(() => handler(), 30000);
+
+    return () => {
+      window.removeEventListener("announcements-updated", handler);
+      window.removeEventListener("content-updated", handler);
+      window.removeEventListener("reactions-updated", handler);
+      window.removeEventListener("views-updated", handler);
+      clearInterval(interval);
+    };
+  }, [searchQuery, filterCategory, priorityFilter, expiryFilter, sortMode]);
+
   const relevanceScore = (item: any, q: string) => {
     const hay = `${item.title} ${item.content}`.toLowerCase();
     const occurrences = (hay.match(new RegExp(q, "gi")) || []).length;
@@ -157,6 +195,17 @@ export default function Announcements() {
   const paginatedAnnouncements = sortedAnnouncements.slice((safePage - 1) * itemsPerPage, safePage * itemsPerPage);
 
   const PaginationControls = () => {
+    useEffect(() => {
+      console.debug("[Announcements] PaginationControls mounted", { safePage, totalPages });
+      return () => {
+        console.debug("[Announcements] PaginationControls unmounted", { safePage, totalPages });
+      };
+    }, []);
+
+    useEffect(() => {
+      console.debug("[Announcements] PaginationControls updated", { safePage, totalPages });
+    }, [safePage, totalPages]);
+
     if (totalPages <= 1) return null;
 
     const pageNumbers = Array.from({ length: totalPages }, (_, index) => index + 1).filter((number) => {
@@ -165,7 +214,7 @@ export default function Announcements() {
     });
 
     return (
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-4">
+      <div className="flex flex-wrap items-center justify-center gap-2 pt-4" role="navigation" aria-label="Announcements pagination" data-testid="announcements-pagination">
         <Button variant="outline" size="sm" disabled={safePage === 1} onClick={() => setCurrentPage(safePage - 1)}>
           Previous
         </Button>

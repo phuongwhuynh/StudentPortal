@@ -157,7 +157,7 @@ async def list_questions(
         None, description="Search questions by keyword in title or body"
     ),
     limit: int = Query(
-        10, ge=1, le=100, description="The number of questions to return"
+        1000, ge=1, le=1000, description="The number of questions to return"
     ),
     offset: int = Query(
         0, ge=0, description="The number of questions to skip for pagination"
