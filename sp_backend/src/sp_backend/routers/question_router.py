@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Path, Query
+from fastapi import APIRouter, Depends, status, Path, Query, Response
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from sp_backend.dependencies.auth import get_current_user, get_current_user_optional
@@ -107,15 +107,37 @@ async def count_questions(
 async def get_question(
     request: Request,
     question_id: int = Path(..., description="The ID of the question to retrieve"),
+    increment_views: bool = Query(
+        False,
+        description="Whether to increment the view counter for this request",
+    ),
     current_user: Optional[UserClaims] = Depends(get_current_user_optional),
 ) -> GetQuestionResponse:
     service = GetQuestionService(
         db_session=request.state.db,
         question_id=question_id,
-        user_id=current_user.id,
+        user_id=current_user.id if current_user else None,
     )
+    service.increment_views = increment_views
     get_question_response: GetQuestionResponse = service.invoke()
     return get_question_response
+
+
+@router.post("/{question_id}/view", status_code=status.HTTP_204_NO_CONTENT)
+async def increment_question_view(
+    request: Request,
+    question_id: int,
+):
+    service = GetQuestionService(db_session=request.state.db, question_id=question_id)
+    try:
+        service.get_question()
+        service.update_views_count()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except Exception:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": "Question not found"},
+        )
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_class=JSONResponse)
@@ -168,3 +190,4 @@ async def delete_question(
         user_id=current_user.id,
     )
     service.invoke()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

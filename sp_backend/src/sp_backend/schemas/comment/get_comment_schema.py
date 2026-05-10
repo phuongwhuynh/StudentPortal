@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from sp_backend.constants.content_type import ContentType
 from sp_backend.constants.user import UserRole
+from datetime import datetime
 
 
 class CommenterInfo(BaseModel):
@@ -20,6 +21,7 @@ class CommentInfo(BaseModel):
         ..., description="The content of the comment", example="This is a great post!"
     )
     commenter: CommenterInfo = Field(..., description="Information about the commenter")
+    created_at: datetime = Field(..., description="Timestamp when the comment was created")
     content_id: int = Field(
         ..., description="The ID of the content to which the comment belongs"
     )

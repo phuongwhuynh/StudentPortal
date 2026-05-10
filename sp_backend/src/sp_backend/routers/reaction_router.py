@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Path, status, Query
+from fastapi import APIRouter, Depends, Path, status, Query, Response
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from sp_backend.dependencies.auth import get_current_user
@@ -37,7 +37,7 @@ async def like_content(
 @router.delete(
     "/{content_type}/{content_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    response_class=JSONResponse,
+    response_class=Response,
 )
 async def unlike_content(
     request: Request,
@@ -52,3 +52,4 @@ async def unlike_content(
         user_id=current_user.id,
     )
     service.invoke()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

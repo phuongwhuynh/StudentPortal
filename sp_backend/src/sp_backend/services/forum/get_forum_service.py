@@ -22,6 +22,7 @@ class GetForumService:
         self.db_session: Session = db_session
         self.forum_id: int = forum_id
         self.user_id: Optional[int] = user_id
+        self.increment_views: bool = True
         self.forum_response: Optional[GetForumResponse] = None
         self.forum: Optional[Forum] = None
         self.user_liked: Optional[bool] = None
@@ -97,6 +98,7 @@ class GetForumService:
                 full_name=self.forum.poster.full_name,
                 role=self.forum.poster.role,
             ),
+            created_at=self.forum.created_at,
             views_count=self.forum.views_count,
             likes_count=self.forum.likes_count,
             comments_count=self.forum.comments_count,
@@ -107,6 +109,7 @@ class GetForumService:
     def invoke(self) -> GetForumResponse:
         self.get_forum()
         self.get_user_reaction()
-        self.update_views_count()
+        if self.increment_views:
+            self.update_views_count()
         self.build_response()
         return self.forum_response

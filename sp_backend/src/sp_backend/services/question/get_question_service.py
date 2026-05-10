@@ -23,6 +23,7 @@ class GetQuestionService:
         self.db_session: Session = db_session
         self.question_id: int = question_id
         self.user_id: Optional[int] = user_id
+        self.increment_views: bool = True
         self.question_response: Optional[GetQuestionResponse] = None
         self.question: Optional[Question] = None
         self.user_liked: Optional[bool] = None
@@ -123,6 +124,7 @@ class GetQuestionService:
     def invoke(self) -> GetQuestionResponse:
         self.get_question()
         self.get_user_reaction()
-        self.update_views_count()
+        if self.increment_views:
+            self.update_views_count()
         self.build_response()
         return self.question_response

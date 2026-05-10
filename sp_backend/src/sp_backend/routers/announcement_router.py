@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status, Query, Path
+from fastapi import APIRouter, Depends, status, Query, Path, Response
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from sp_backend.schemas.announcement.create_announcement_schema import (
@@ -176,3 +176,4 @@ async def delete_announcement(
         user_id=current_user.id,
     )
     service.invoke()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

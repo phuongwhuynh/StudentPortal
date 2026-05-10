@@ -12,7 +12,8 @@ class ContentNotFoundException(HTTPException):
 
 class CommentNotFoundException(ContentNotFoundException):
     def __init__(self, comment_id: int):
-        super().__init__(
+        HTTPException.__init__(
+            self,
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Comment with ID {comment_id} not found.",
         )

@@ -72,6 +72,7 @@ class GetCommentsOfContentService:
                         full_name=comment.poster.full_name,
                         role=comment.poster.role,
                     ),
+                    created_at=comment.created_at,
                     content_id=comment.content_id,
                     content_type=comment.content_type,
                     parent_comment_id=comment.parent_comment_id,

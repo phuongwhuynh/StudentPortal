@@ -43,6 +43,11 @@ class GetForumResponse(BaseModel):
         ...,
         description="Information about the user who posted the forum",
     )
+    created_at: datetime = Field(
+        ...,
+        description="The timestamp when the forum post was created",
+        example="2024-01-01T11:30:00Z",
+    )
     views_count: int = Field(
         ..., description="The number of views the forum post has received", example=0
     )

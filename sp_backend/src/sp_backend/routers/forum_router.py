@@ -1,6 +1,7 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends, Path, status, Query
+from fastapi import APIRouter, Depends, Path, status, Query, Response
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from sp_backend.schemas.forum.create_forum_schema import (
@@ -19,6 +20,10 @@ from sp_backend.services.forum.list_forum_service import ListForumService
 from sp_backend.services.forum.get_forum_service import GetForumService
 from sp_backend.services.forum.count_forum_service import (
     CountForumService,
+)
+from sp_backend.constants.content_type import ContentType
+from sp_backend.services.comment.get_comments_of_content_service import (
+    GetCommentsOfContentService,
 )
 from sp_backend.constants.forum import SortOptions, ForumCategory
 from typing import Optional
@@ -75,6 +80,10 @@ async def list_forum_sort_options(
 async def get_forum_details(
     request: Request,
     forum_id: int,
+    increment_views: bool = Query(
+        False,
+        description="Whether to increment the view counter for this request",
+    ),
     current_user: Optional[UserClaims] = Depends(get_current_user_optional),
 ) -> GetForumResponse:
     service = GetForumService(
@@ -82,8 +91,33 @@ async def get_forum_details(
         forum_id=forum_id,
         user_id=current_user.id if current_user else None,
     )
+    service.increment_views = increment_views
     forum_response: GetForumResponse = service.invoke()
-    return forum_response
+    # also fetch top-level comments for the forum to return together
+    try:
+        comments_service = GetCommentsOfContentService(
+            db_session=request.state.db, content_type=ContentType.FORUM, content_id=forum_id
+        )
+        comments_result = comments_service.invoke()
+        payload = forum_response.dict()
+        payload["comments"] = [c.dict() for c in comments_result.comments]
+        return JSONResponse(content=jsonable_encoder(payload))
+    except Exception:
+        return JSONResponse(content=jsonable_encoder(forum_response.dict()))
+
+
+@router.post("/{forum_id}/view", status_code=status.HTTP_204_NO_CONTENT)
+async def increment_forum_view(
+    request: Request,
+    forum_id: int,
+):
+    service = GetForumService(db_session=request.state.db, forum_id=forum_id)
+    try:
+        service.get_forum()
+        service.update_views_count()
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except Exception:
+        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"detail": "Forum not found"})
 
 
 @router.get("/", status_code=status.HTTP_200_OK, response_class=JSONResponse)
@@ -127,3 +161,4 @@ async def delete_forum(
         user_id=current_user.id,
     )
     service.invoke()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
