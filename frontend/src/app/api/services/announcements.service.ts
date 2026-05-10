@@ -85,10 +85,10 @@ export async function listAnnouncements(options?: { sortBy?: "recent" | "trendin
   return announcements.map(normalizeAnnouncement);
 }
 
-export async function createAnnouncement(title: string, body: string, category?: string, expiresAt?: string | null): Promise<AnnouncementPost> {
+export async function createAnnouncement(title: string, body: string, category?: string, priority?: string, expiresAt?: string | null): Promise<AnnouncementPost> {
   const response = await requestJson<BackendAnnouncement>([announcementListUrl], {
     method: "POST",
-    body: { title, body, category, expiresAt },
+    body: { title, body, category, priority, expired_at: expiresAt },
   });
   return normalizeAnnouncement(response);
 }

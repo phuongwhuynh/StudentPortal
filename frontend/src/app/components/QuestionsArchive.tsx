@@ -44,7 +44,7 @@ export default function QuestionsArchive() {
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
-  const [newCategory, setNewCategory] = useState("General");
+  const [newCategory, setNewCategory] = useState("Academic");
   const [createError, setCreateError] = useState<string | null>(null);
   const [questions, setQuestions] = useState<Array<{
     id: string;
@@ -65,7 +65,7 @@ export default function QuestionsArchive() {
     status: string;
   }>>([]);
 
-  const forumCategories = ["Academic Support", "Campus Life", "Career Services", "IT & Technology", "Student Affairs", "General"];
+  const forumCategories = ["IT Services", "Library", "Housing", "Career Services", "Academic", "Dining", "Student Services", "Transportation"];
 
   const categories = ["all", ...forumCategories];
 
@@ -93,11 +93,12 @@ export default function QuestionsArchive() {
 
   const sortedFilteredQuestions = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (sortMode === "trending") return [...filteredQuestions].sort((a, b) => b.upvotes - a.upvotes);
-    if (sortMode === "recent") return [...filteredQuestions].sort((a, b) => new Date(b.dateAsked).getTime() - new Date(a.dateAsked).getTime());
-    if (sortMode === "relevant" && q) return [...filteredQuestions].sort((a, b) => {
-      return (relevanceScore(b, q) - relevanceScore(a, q));
-    });
+    // Backend already sorted for "trending" and "recent", only client-sort for "relevant"
+    if (sortMode === "relevant" && q) {
+      return [...filteredQuestions].sort((a, b) => {
+        return (relevanceScore(b, q) - relevanceScore(a, q));
+      });
+    }
     return filteredQuestions;
   }, [filteredQuestions, sortMode, searchQuery]);
 
@@ -180,8 +181,9 @@ export default function QuestionsArchive() {
     };
 
     useEffect(() => {
-      load({ q: searchQuery, category: filterCategory });
-    }, [searchQuery, filterCategory]);
+      const sortParam = sortMode === "trending" ? "desc" : sortMode === "recent" ? "asc" : undefined;
+      load({ q: searchQuery, category: filterCategory, sort: sortParam });
+    }, [searchQuery, filterCategory, sortMode]);
 
     useEffect(() => {
       const handler = () => load({ q: searchQuery, category: filterCategory });
@@ -244,12 +246,12 @@ export default function QuestionsArchive() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Today</p>
+                <p className="text-sm text-gray-600">Unanswered Questions</p>
                 <p className="text-2xl font-bold">
-                  {(questions.reduce((sum, q) => sum + q.views, 0) / 1000).toFixed(1)}k
+                  {questions.filter(q => !q.isSolved).length}
                 </p>
               </div>
-              <ThumbsUp className="w-8 h-8 text-purple-600" />
+              <HelpCircle className="w-8 h-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
@@ -351,7 +353,12 @@ export default function QuestionsArchive() {
 
       {/* Questions List */}
       <div>
-        <h2 className="text-xl font-semibold mb-4">All Questions ({sortedFilteredQuestions.length})</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold">All Questions</h2>
+          <Badge variant="secondary" className="shrink-0">
+            {sortedFilteredQuestions.length} results
+          </Badge>
+        </div>
         <Accordion type="single" collapsible className="space-y-3">
           {paginatedQuestions.map((q) => (
             <AccordionItem key={q.id} value={`item-${q.id}`} className="border rounded-lg">

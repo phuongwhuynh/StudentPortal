@@ -56,9 +56,11 @@ export default function Announcements() {
     expiresAt?: string | null;
   }>>([]);
 
+  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("recent");
+
   useEffect(() => {
     let mounted = true;
-    listAnnouncements().then((items) => {
+    listAnnouncements({ sortBy: sortMode === "relevant" ? undefined : (sortMode as "recent" | "trending" | undefined) }).then((items) => {
       if (!mounted) return;
       setAnnouncements(
         items.map((announcement) => ({
@@ -78,7 +80,7 @@ export default function Announcements() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [sortMode]);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -130,8 +132,6 @@ export default function Announcements() {
     return matchesSearch && matchesCategory && matchesPriority && matchesExpiry;
   }), [announcements, searchQuery, filterCategory, priorityFilter, expiryFilter]);
 
-  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("recent");
-
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterCategory, priorityFilter, expiryFilter, sortMode]);
@@ -143,10 +143,11 @@ export default function Announcements() {
   };
 
   const sortedAnnouncements = useMemo(() => {
+    // Backend already sorted for "trending" and "recent", only client-sort for "relevant"
     const q = searchQuery.trim().toLowerCase();
-    if (sortMode === "trending") return [...filteredAnnouncements].sort((a, b) => b.type.localeCompare(a.type));
-    if (sortMode === "recent") return [...filteredAnnouncements].sort((a, b) => +new Date(b.date) - +new Date(a.date));
-    if (sortMode === "relevant" && q) return [...filteredAnnouncements].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
+    if (sortMode === "relevant" && q) {
+      return [...filteredAnnouncements].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
+    }
     return filteredAnnouncements;
   }, [filteredAnnouncements, sortMode, searchQuery]);
 
@@ -202,7 +203,7 @@ export default function Announcements() {
   const handleCreateAnnouncement = async () => {
     try {
       setCreateError(null);
-      const announcement = await createAnnouncement(newTitle, newBody, newCategory, newExpiresAt);
+      const announcement = await createAnnouncement(newTitle, newBody, newCategory, newPriority, newExpiresAt);
       setAnnouncements((current) => [
         {
           id: announcement.id,

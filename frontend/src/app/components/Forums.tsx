@@ -42,8 +42,6 @@ export default function Forums() {
   const [searchQuery, setSearchQuery] = useState("");
   const [forumThreads, setForumThreads] = useState<ForumCardItem[]>([]);
   const [allPage, setAllPage] = useState(1);
-  const [trendingPage, setTrendingPage] = useState(1);
-  const [recentPage, setRecentPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [newBody, setNewBody] = useState("");
@@ -54,11 +52,14 @@ export default function Forums() {
 
   const itemsPerPage = 10;
 
-  const forumCategoryOptions = ["Academic Support", "Campus Life", "Career Services", "IT & Technology", "Student Affairs", "General"];
+  const forumCategoryOptions = ["Academic Support", "Campus Life", "Career Services", "IT & Technology", "Student Affairs", "General"];  // Note: Forum categories can be different from question categories
+
+  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("trending");
 
   useEffect(() => {
     let mounted = true;
-    listForums().then((items) => {
+    const sortByParam = sortMode === "relevant" ? undefined : (sortMode as "trending" | "recent" | undefined);
+    listForums({ sortBy: sortByParam }).then((items) => {
       if (!mounted) return;
       setForumThreads(
         items.map((thread) => ({
@@ -78,7 +79,7 @@ export default function Forums() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [sortMode]);
 
   useEffect(() => {
     if (!user) {
@@ -121,12 +122,10 @@ export default function Forums() {
     [forumThreads, searchQuery, selectedCategory],
   );
 
-  const [sortMode, setSortMode] = useState<"trending" | "recent" | "relevant">("trending");
+
 
   useEffect(() => {
     setAllPage(1);
-    setTrendingPage(1);
-    setRecentPage(1);
   }, [searchQuery, sortMode]);
 
   const relevanceScore = (thread: ForumCardItem, q: string) => {
@@ -134,15 +133,15 @@ export default function Forums() {
     return (hay.match(new RegExp(q, "gi")) || []).length;
   };
 
-  const trendingThreads = useMemo(() => [...filteredThreads].sort((a, b) => b.likes - a.likes), [filteredThreads]);
-  const recentThreads = useMemo(() => [...filteredThreads].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)), [filteredThreads]);
-  const relevantThreads = useMemo(() => {
+  // Backend returns data already sorted for trending/recent modes
+  // Only do client-side sorting for relevant mode or when needed
+  const displayedThreads = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return filteredThreads;
-    return [...filteredThreads].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
-  }, [filteredThreads, searchQuery]);
-
-  const allThreads = sortMode === "relevant" && searchQuery ? relevantThreads : filteredThreads;
+    if (sortMode === "relevant" && q) {
+      return [...filteredThreads].sort((a, b) => relevanceScore(b, q) - relevanceScore(a, q));
+    }
+    return filteredThreads;
+  }, [filteredThreads, sortMode, searchQuery]);
 
   const paginate = (items: ForumCardItem[], page: number) => {
     const totalPages = Math.max(1, Math.ceil(items.length / itemsPerPage));
@@ -206,9 +205,7 @@ export default function Forums() {
     );
   };
 
-  const allPagination = paginate(allThreads, allPage);
-  const trendingPagination = paginate(trendingThreads, trendingPage);
-  const recentPagination = paginate(recentThreads, recentPage);
+  const allPagination = paginate(displayedThreads, allPage);
 
   const handleCreateForum = async () => {
     try {
@@ -332,8 +329,6 @@ export default function Forums() {
   );
 
   const displayedAllThreads = allPagination.items;
-  const displayedTrendingThreads = trendingPagination.items;
-  const displayedRecentThreads = recentPagination.items;
 
   return (
     <div className="space-y-6">
@@ -450,7 +445,7 @@ export default function Forums() {
             <p className="text-sm text-gray-500">Use the sort control above to switch between trending, recent, and relevant views.</p>
           </div>
           <Badge variant="secondary" className="shrink-0">
-            {allThreads.length} results
+            {filteredThreads.length} results
           </Badge>
         </div>
 
